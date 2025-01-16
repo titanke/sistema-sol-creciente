@@ -1,0 +1,313 @@
+{% extends "posApp/base.html" %} {% block pageContent %}
+<audio id="beep" src="https://bigsoundbank.com/UPLOAD/wav/1417.wav" preload="auto"></audio>
+
+
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
+    <div class="mdc-card py-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <h4 class="card-title mb-0">Lista de productos</h4>
+            <div class="text-start">
+                {% if request.user.is_superuser %}
+                    <button class="btn btn-primary bg-gradient btn-sm rounded-0" id="create_new"><i class="mdi mdi-plus"></i><span> Agregar nuevo</span></button>
+                {% endif %}
+                <button class="btn btn-primary bg-gradient btn-sm rounded-0" id="scanQR"><i class="mdi mdi-plus"></i><span> Escanear producto</span></button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modal QR-->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="qrModalLabel">Código QR del Producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body d-flex justify-content-center">
+          <img id="qrImage" src="" alt="Código QR" style="max-width: 100%;">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!--Contenido QR-->
+<div class="modal fade" id="qrModal2" tabindex="-1" aria-labelledby="qrModal2Label" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="qrModal2Label">Escanear producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body d-flex flex-column align-items-center">
+          <video id="preview" style="width: 100%;"></video>
+          <p id="qrText" class="increased-font-size"> </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Modal Foto -->
+<div class="modal fade" id="fotoModal" tabindex="-1" aria-labelledby="fotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="fotoModalLabel">Foto del producto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body d-flex justify-content-center">
+          <img id="a"  alt="" style="max-width: 100%;">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
+    <div class="mdc-card">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered">
+                <colgroup>
+                    <col width="5%">
+                    <col width="20%">
+                    <col width="20%">
+                    <col width="25%">
+                    <col width="15%">
+                    <col width="5%">
+                    
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th class="text-center py-1">#</th>
+                        <th class="text-center py-1">Categoria</th>
+                        <th class="text-center py-1">Producto</th>
+                        <th class="text-center py-1">Descripcion</th>
+                        <th class="text-center py-1">Precio Unit.</th>
+                        <th class="text-center py-1">Stock</th>
+                        {% if request.user.is_superuser %}
+                        <th class="text-center py-1">Accion</th>
+                        {% endif %}
+
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td class="px-2 py-1 text-center">{{ product.id }}</td>
+                        <td class="px-2 py-1 text-start">{{ product.category_id }}</td>
+                        <td class="px-2 py-1 text-start">{{ product.code }} - {{ product.name }}</td>
+                        <td class="px-2 py-1 text-start">{{ product.description }}</td>
+                        <td class="px-2 py-1 text-start">{{ product.price }}</td>
+                        <td class="px-2 py-1 text-start">{{ product.stock }}</td>
+                        {% if request.user.is_superuser %}
+
+                        <td class="px-2 py-1 text-center">
+                          <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--light mdc-ripple-upgraded edit-data" type="button" data-id="{{ product.pk }}" title="Editar">
+                            <i class="material-icons mdc-button__icon">edit</i>
+                        </button>
+                        <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--danger mdc-ripple-upgraded delete-data" type="button" data-id="{{ product.pk }}" title="Borrar">
+                            <i class="material-icons mdc-button__icon">delete</i>
+                        </button>
+
+                          <label for="fileInput{{ product.pk }}" class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded upload-image-button">
+                            <i class="fa-solid fa-upload "></i>
+                          </label>
+                          <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded foto" type="button" data-id="{{ product.pk }}" title=" Imagen">
+                            <i class="fa-solid fa-image"></i>
+                        </button>
+                          <form method="post" action="{% url 'upload_file' %}" id="upload-file{{ product.pk }}" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="directory" value="{{ product.pk }}"  data-id="{{ product.pk }}">
+                            <input id="fileInput{{ product.pk }}" class="d-none" onchange="submitForm({{ product.pk }})" type="file" name="file" accept="image/jpeg" required>                            
+                          </form>
+
+                          <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--dark mdc-ripple-upgraded generate-qr" type="button" data-id="{{ product.pk }}" title=" QR">
+                              <i class="fa-solid fa-qrcode"></i>
+                          </button>
+                        </td>
+                        {% endif %}
+
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock pageContent %} {% block ScriptBlock %}
+<script>
+    
+    function myFunction() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("searchInput");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("myTable");
+        tr = table.getElementsByTagName("tr");
+        for (i = 0; i < tr.length; i++) {
+          td = tr[i].getElementsByTagName("td")[1]; // Cambia el índice según la columna en la que quieras buscar
+          if (td) {
+            txtValue = td.textContent || td.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              tr[i].style.display = "";
+            } else {
+              tr[i].style.display = "none";
+            }
+          }       
+        }
+      }
+//
+function submitForm(product_pk) {
+  document.getElementById("upload-file" + product_pk).submit();
+}
+
+//
+      $("#scanQR").click(function(){
+        $("#qrModal2").modal('show');
+
+      });
+
+      let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
+      let beep = document.getElementById('beep');
+
+      scanner.addListener('scan', function (content) {
+        const partes = content.split('-');
+      
+        const idProducto = partes[1];
+      
+        console.log(idProducto);
+        document.getElementById('qrText').innerText = content;
+        document.getElementById('preview').style.width = '0%';
+        document.getElementById('preview').style.opacity = 1; // Reset video opacity
+        scanner.stop();
+      
+        beep.play();
+
+        $('#product-id').val(idProducto);
+      
+        $('#product-qty').val(1);
+    
+      });
+
+      $(document).ready(function(){
+        
+        $("#scanQR").click(function(){
+          Instascan.Camera.getCameras().then(function (cameras) {
+            if (cameras.length > 0) {
+              scanner.start(cameras[0]);
+            } else {
+              console.error('No cameras found.');
+            }
+          }).catch(function (e) {
+            console.error(e);
+          });
+          $("#qrModal2").modal('show');
+        });
+        $('#qrModal2').on('hidden.bs.modal', function (e) {
+          document.getElementById('qrText').innerText = "";
+          document.getElementById('preview').style.width = '100%';
+          scanner.stop();
+          
+        })
+      });
+
+    $(function() {
+        $('#create_new').click(function() {
+            uni_modal("Agregar nuevos productos", "{% url 'manage_products-page' %}")
+        })
+        $('.edit-data').click(function() {
+            uni_modal("Editar producto", "{% url 'manage_products-page' %}?id=" + $(this).attr('data-id'))
+        })
+        $('.delete-data').click(function() {
+            _conf("¿Estás seguro de eliminar este producto?", "delete_product", [$(this).attr('data-id')])
+        })
+
+        $('#uni_modal').on('shown.bs.modal', function() {
+            $('#category_id').select2({
+                placeholder: "Selecciona la categoria",
+                width: '100%',
+                dropdownParent: $('#uni_modal')
+            })
+        })
+    })
+
+    function delete_product($id) {
+        start_loader();
+        $.ajax({
+            headers: {
+                "X-CSRFToken": '{{csrf_token}}'
+            },
+            url: "{% url 'delete-product' %}",
+            method: "POST",
+            data: {
+                id: $id
+            },
+            dataType: "json",
+            error: err => {
+                console.log(err)
+                alert_toast("Ocurrio un error", 'error');
+                end_loader();
+            },
+            success: function(resp) {
+                if (typeof resp == 'object' && resp.status == 'success') {
+                    location.reload();
+                } else {
+                    alert_toast("Ocurrio un error", 'error');
+                    end_loader();
+                }
+            }
+        })
+    }
+//
+$('.generate-qr').click(function() {
+    var product_id = $(this).attr('data-id');
+    generate_qr(product_id);
+    
+})
+
+function generate_qr(product_id) {
+    $.ajax({
+        headers: {
+            "X-CSRFToken": '{{csrf_token}}'
+        },
+        url: "{% url 'generate-qr' %}",
+        method: "POST",
+        data: {
+            id: product_id
+        },
+        dataType: "json",
+        error: err => {
+            console.log(err)
+            alert_toast("Ocurrio un error", 'error');
+        },
+        success: function(resp) {
+            if (typeof resp == 'object' && resp.status == 'success') {
+                // Aquí puedes mostrar el código QR en un modal
+                $('#qrModal img').attr('src', resp.qr_url);
+                $('#qrModal').modal('show');
+            } else {
+                alert_toast("Ocurrio un error", 'error');
+            }
+        }
+    })
+}
+$('.foto').click(function() {
+  var imageUrl = "media/products/"+$(this).attr('data-id')+".jpg";  
+  imageUrl = imageUrl.replace(/%/g, ' ');  
+  $('#a').attr('src', imageUrl);
+  $('#fotoModal').modal('show');
+});
+
+
+</script>
+{% endblock ScriptBlock %}
