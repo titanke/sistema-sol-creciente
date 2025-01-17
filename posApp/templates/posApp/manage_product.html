@@ -25,12 +25,49 @@
         </select>
             <div class="form-group mb-3">
                 <label for="name" class="control-label">Nombre del producto</label>
-                <input type="text" name="name" id="name" class="form-control form-control-sm rounded-0" value="{% if product.name %}{{product.name}}{% endif %}" required>
+                <input  name="name" id="name" class="form-control form-control-sm rounded-0" value="{% if product.name %}{{product.name}}{% endif %}" required>
             </div>
             <div class="form-group mb-3">
                 <label for="description" class="control-label">Descripcion</label>
-                <textarea rows="5" name="description" id="description" class="form-control form-control-sm rounded-0" required>{% if product.description %}{{product.description}}{% endif %}</textarea>
+                <input type="text" name="description" id="description" class="form-control form-control-sm rounded-0" value="{% if product.description %}{{product.description}}{% endif %}" required>
+
             </div>
+            <div class="form-group mb-3">
+                <label for="stock" class="control-label">Stock</label>
+                <input type="text" name="stock" id="stock" class="form-control form-control-sm rounded-0" value="{% if product.stock %}{{product.stock}}{% endif %}" required>
+            </div>
+          
+               <!-- Campo para características -->
+            <div class="form-group mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="control-label me-2">Características</label>
+                    <button type="button" id="add-feature" class="btn btn-success btn-sm"><i class="mdi mdi-plus"></i>Agregar característica</button>
+                </div>
+                <div id="features-container">
+                    {% for feature in features %}
+                    <div class="feature-row d-flex align-items-center mb-2">
+                        <select name="feature_color[]" class="form-control me-2">
+                            {% for color in colors %}
+                            <option value="{{ color.id }}" {% if feature.color.id == color.id %}selected{% endif %}>
+                                {{ color.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <select name="feature_size[]" class="form-control me-2">
+                            {% for size in sizes %}
+                            <option value="{{ size.id }}" {% if feature.size.id == size.id %}selected{% endif %}>
+                                {{ size.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="feature_stock[]" class="form-control me-2" value="{{ feature.stock }}" min="0">
+                        <button type="button" class="btn btn-danger btn-remove-feature">Eliminar</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+
             <div class="form-group mb-3">
                 <label for="price" class="control-label">Precio unitario</label>
                 <input type="text" name="price" id="price" class="form-control form-control-sm rounded-0" value="{% if product.price %}{{product.price}}{% endif %}" required>
@@ -40,11 +77,7 @@
                 <label for="p_mayor" class="control-label">Precio mayor</label>
                 <input type="text" name="p_mayor" id="p_mayor" class="form-control form-control-sm rounded-0" value="{% if product.p_mayor %}{{product.p_mayor}}{% endif %}" required>
             </div>
-            <div class="form-group mb-3">
-                <label for="stock" class="control-label">Stock</label>
-                <input type="text" name="stock" id="stock" class="form-control form-control-sm rounded-0" value="{% if product.stock %}{{product.stock}}{% endif %}" required>
-            </div>
-          
+
             
             <div class="form-group mb-3">
                 <label for="status" class="control-label">Estado</label>
@@ -63,9 +96,50 @@
         </select>
             </div>
     </form>
+
     </div>
+
+
     <script>
- 
+
+        $(document).ready(function () {
+            const featureContainer = $("#features-container"); // Contenedor de características
+    
+            // Agregar nueva fila
+            $("#add-feature").on("click", function () {
+                console.log("a");
+                const row = $(`
+                    <div class="feature-row d-flex align-items-center mb-2">
+                        <select name="feature_color[]" class="form-control me-2">
+                            {% for color in colors %}
+                            <option value="{{ color.id }}">{{ color.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="feature_size[]" class="form-control me-2">
+                            {% for size in sizes %}
+                            <option value="{{ size.id }}">{{ size.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="feature_stock[]" class="form-control me-2" min="0">
+                        <button type="button" class="btn btn-danger btn-remove-feature">Eliminar</button>
+                    </div>
+                `);
+                featureContainer.append(row);
+    
+                // Asignar evento para eliminar la fila recién agregada
+                row.find(".btn-remove-feature").on("click", function () {
+                    $(this).closest(".feature-row").remove();
+                });
+            });
+    
+            // Eliminar filas existentes al cargar la página
+            featureContainer.on("click", ".btn-remove-feature", function () {
+                $(this).closest(".feature-row").remove();
+            });
+        });
+    
+
+
         $(function() {
             $('#product-form').submit(function(e) {
                 e.preventDefault();
@@ -114,5 +188,8 @@
                 })
             })
         })
-      
+
     </script>
+
+
+    

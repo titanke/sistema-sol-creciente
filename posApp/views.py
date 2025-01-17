@@ -1,15 +1,18 @@
 from pickle import FALSE
 from django.shortcuts import redirect, render
 from django.http import HttpResponse
-from posApp.models import Category, Products, Sales, salesItems, ProductImage
+from posApp.models import Category, Products, Sales, salesItems, ProductImage, Size, Color,ProductFeature
 from django.db.models import Count, Sum
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
+from django.core.paginator import Paginator
+from django.db.models import Q
 import json, sys
 from datetime import date, datetime
-#
+from django.db import transaction
+
 
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
@@ -94,6 +97,7 @@ def category(request):
     }
     return render(request, 'posApp/category.html',context)
 
+
 @login_required
 def manage_category(request):
     category = {}
@@ -109,6 +113,127 @@ def manage_category(request):
         'category' : category
     }
     return render(request, 'posApp/manage_category.html',context)
+
+@login_required
+def color(request):
+    search = request.GET.get('search', '')
+    if search:
+        color_list = Color.objects.filter(name__icontains=search)
+    else:
+        color_list = Color.objects.all()
+    # category_list = {}
+    context = {
+        'page_title':'Lista de Colores',
+        'color':color_list,
+    }
+    return render(request, 'posApp/color.html',context)
+
+
+def manage_color(request):
+    color = {}
+    if request.method == 'GET':
+        data =  request.GET
+        id = ''
+        if 'id' in data:
+            id= data['id']
+        if id.isnumeric() and int(id) > 0:
+            color = Color.objects.filter(id=id).first()
+    
+    context = {
+        'color' : color
+    }
+    return render(request, 'posApp/manage_color.html',context)
+
+
+@login_required
+def save_color(request):
+    data =  request.POST
+    resp = {'status':'failed'}
+    try:
+        if (data['id']).isnumeric() and int(data['id']) > 0 :
+            save_color = Color.objects.filter(id = data['id']).update(name=data['name'],status = data['status'])
+        else:
+            save_color = Color(name=data['name'],status = data['status'])
+            save_color.save()
+        resp['status'] = 'success'
+        messages.success(request, 'Color agregado correctamente.')
+    except:
+        resp['status'] = 'failed'
+    return HttpResponse(json.dumps(resp), content_type="application/json")
+
+@login_required
+def delete_color(request):
+    data =  request.POST
+    resp = {'status':''}
+    try:
+        Color.objects.filter(id = data['id']).delete()
+        resp['status'] = 'success'
+        messages.success(request, 'Color eliminado.')
+    except:
+        resp['status'] = 'failed'
+    return HttpResponse(json.dumps(resp), content_type="application/json")
+
+
+@login_required
+def size(request):
+    search = request.GET.get('search', '')
+    if search:
+        size_list = Size.objects.filter(name__icontains=search)
+    else:
+        size_list = Size.objects.all()
+    # category_list = {}
+    context = {
+        'page_title':'Lista de Tallas',
+        'size':size_list,
+    }
+    return render(request, 'posApp/size.html',context)
+
+@login_required
+
+def manage_size(request):
+    size = {}
+    if request.method == 'GET':
+        data =  request.GET
+        id = ''
+        if 'id' in data:
+            id= data['id']
+        if id.isnumeric() and int(id) > 0:
+            size = Size.objects.filter(id=id).first()
+    
+    context = {
+        'size' : size
+    }
+    return render(request, 'posApp/manage_size.html',context)
+
+
+@login_required
+def save_size(request):
+    data =  request.POST
+    resp = {'status':'failed'}
+    try:
+        if (data['id']).isnumeric() and int(data['id']) > 0 :
+            save_size = Size.objects.filter(id = data['id']).update(name=data['name'],status = data['status'])
+        else:
+            save_size = Size(name=data['name'],status = data['status'])
+            save_size.save()
+        resp['status'] = 'success'
+        messages.success(request, 'Talla agregado correctamente.')
+    except:
+        resp['status'] = 'failed'
+    return HttpResponse(json.dumps(resp), content_type="application/json")
+
+@login_required
+def delete_size(request):
+    data =  request.POST
+    resp = {'status':''}
+    try:
+        Size.objects.filter(id = data['id']).delete()
+        resp['status'] = 'success'
+        messages.success(request, 'Talla eliminada.')
+    except:
+        resp['status'] = 'failed'
+    return HttpResponse(json.dumps(resp), content_type="application/json")
+
 
 @login_required
 def save_category(request):
@@ -139,35 +264,69 @@ def delete_category(request):
     return HttpResponse(json.dumps(resp), content_type="application/json")
 
 # Products
-@login_required
-def products(request):
-    # Update product status based on stock
-    Products.objects.filter(stock=0).update(status=0)  # Update all products with 0 stock
 
-    product_list = Products.objects.all()
+
+
+def products(request):
+    # Obtener el filtro de búsqueda y categoría
+    search = request.GET.get('search', '')
+    category_filter = request.GET.get('category', '')
+
+    # Filtrar productos basados en búsqueda y categoría
+    if search:
+        product_list = Products.objects.filter(name__icontains=search)
+    else:
+        product_list = Products.objects.all()
+
+    if category_filter:
+        product_list = product_list.filter(category_id=category_filter)
+
+    # Calcular el total de productos
+    total_products = product_list.count()
+
+    # Para paginación
+    page = request.GET.get('page', 1)
+    paginator = Paginator(product_list, 10)  # 10 productos por página
+    products_page = paginator.get_page(page)
+
     context = {
         'page_title': 'Lista de Productos',
-        'products': product_list,
+        'products': products_page,
+        'total_products': total_products,  # Añadir el total
+        'category_filter': category_filter,  # Pasar el filtro de categoría
+        'categories': Category.objects.all(),  # Si necesitas las categorías para el select
     }
     return render(request, 'posApp/products.html', context)
 
 @login_required
 def manage_products(request):
     product = {}
-    categories = Category.objects.filter(status = 1).all()
+    features = []
+    categories = Category.objects.filter(status=1).all()
+    colors = Color.objects.all()
+    sizes = Size.objects.all()
+
     if request.method == 'GET':
-        data =  request.GET
+        data = request.GET
         id = ''
         if 'id' in data:
-            id= data['id']
+            id = data['id']
         if id.isnumeric() and int(id) > 0:
             product = Products.objects.filter(id=id).first()
-    
+            if product:
+                features = product.features.all()
+
     context = {
-        'product' : product,
-        'categories' : categories
+        'product': product,
+        'features': features,
+        'categories': categories,
+        'colors': colors,
+        'sizes': sizes,
     }
-    return render(request, 'posApp/manage_product.html',context)
+    return render(request, 'posApp/manage_product.html', context)
+
+
+
 
 def test(request):
     categories = Category.objects.all()
@@ -176,69 +335,101 @@ def test(request):
     }
     return render(request, 'posApp/test.html',context)
 
+
+@transaction.atomic
 @login_required
 def save_product(request):
     data = request.POST
     resp = {'status': 'failed'}
-    id = ''
-
-    if 'id' in data:
-        id = data['id']
 
     try:
-        price = float(data['price'].replace(',', '.'))
-        p_mayor = float(data['p_mayor'].replace(',', '.'))
-    except ValueError:
-        resp['msg'] = "Formato de precio no válido. Utilice únicamente números y puntos."
-        return HttpResponse(json.dumps(resp), content_type="application/json")
+        # Manejo del ID
+        id = data.get('id', '')
+        id = int(id) if id.isnumeric() else None
 
-    if id.isnumeric() and int(id) > 0:
-        check = Products.objects.exclude(id=id).filter(code=data['code']).all()
-    else:
-        check = Products.objects.filter(code=data['code']).all()
+        # Validar datos necesarios
+        if not data.get('code') or not data.get('name') or not data.get('price'):
+            resp['msg'] = "Código, nombre y precio son campos obligatorios."
+            return HttpResponse(json.dumps(resp), content_type="application/json")
 
-    if len(check) > 0:
-        resp['msg'] = "El codigo del producto ya existe en la base de datos"
-        return HttpResponse(json.dumps(resp), content_type="application/json")
+        # Validar precios
+        try:
+            price = float(data['price'].replace(',', '.'))
+            p_mayor = float(data['p_mayor'].replace(',', '.'))
+        except ValueError:
+            resp['msg'] = "Formato de precio no válido. Usa números y puntos."
+            return HttpResponse(json.dumps(resp), content_type="application/json")
 
-    category = Category.objects.filter(id=data['category_id']).first()
+        # Validar categoría
+        category_id = data.get('category_id')
+        category = Category.objects.filter(id=category_id).first() if category_id else None
+        if not category:
+            resp['msg'] = "Categoría seleccionada no es válida."
+            return HttpResponse(json.dumps(resp), content_type="application/json")
 
-    try:
-        if (id.isnumeric() and int(id) > 0):
-            save_product = Products.objects.filter(id=data['id']).update(
-                code=data['code'],
-                category_id=category,
-                name=data['name'],
-                description=data['description'],
-                price=price,
-                p_mayor=p_mayor,
-                stock=data['stock'],
-                status=data['status'],
-                #image=request.FILES['image'] 
-
-            )
+        # Verificar duplicados
+        if id:
+            duplicate_check = Products.objects.exclude(id=id).filter(code=data['code']).exists()
         else:
-            save_product = Products(
+            duplicate_check = Products.objects.filter(code=data['code']).exists()
+
+        if duplicate_check:
+            resp['msg'] = "El código del producto ya existe en la base de datos."
+            return HttpResponse(json.dumps(resp), content_type="application/json")
+
+        # Guardar o actualizar producto
+        if id:
+            # Actualización de producto existente
+            product = Products.objects.get(id=id)
+            product.code = data['code']
+            product.category_id = category
+            product.name = data['name']
+            product.description = data['description']
+            product.price = price
+            product.p_mayor = p_mayor
+            product.stock = int(data['stock'])
+            product.status = int(data['status'])
+            product.save()
+        else:
+            # Crear nuevo producto
+            product = Products.objects.create(
                 code=data['code'],
                 category_id=category,
                 name=data['name'],
                 description=data['description'],
                 price=price,
                 p_mayor=p_mayor,
-                stock=data['stock'],
-                status=data['status'],
-                #image=request.FILES['image'] if 'image' in request.FILES else None
-
+                stock=int(data['stock']),
+                status=int(data['status']),
             )
-            save_product.save()
-            
+
+        # Manejo de características (ProductFeature)
+        ProductFeature.objects.filter(product=product).delete()  # Elimina características previas
+        feature_colors = data.getlist('feature_color[]')
+        feature_sizes = data.getlist('feature_size[]')
+        feature_stocks = data.getlist('feature_stock[]')
+
+        total_feature_stock = 0
+        for color_id, size_id, stock in zip(feature_colors, feature_sizes, feature_stocks):
+            stock = int(stock)
+            total_feature_stock += stock
+            color = Color.objects.filter(id=color_id).first()
+            size = Size.objects.filter(id=size_id).first()
+
+            if color and size:
+                ProductFeature.objects.create(product=product, color=color, size=size, stock=stock)
+
+        if total_feature_stock > product.stock:
+            raise ValueError("El stock total de las características no puede superar el stock general del producto.")
+
         resp['status'] = 'success'
-        messages.success(request, 'Producto agregado correctamente')
+        resp['msg'] = "Producto guardado correctamente."
     except Exception as e:
-        print(f"Error saving product: {e}") 
-        resp['msg'] = "Ocurrio un error al agregar el producto "
+        print(f"Error al guardar el producto: {e}")
+        resp['msg'] = f"Error al guardar el producto: {str(e)}"
 
     return HttpResponse(json.dumps(resp), content_type="application/json")
+
 
 def upload_file(request):
     media_path = os.path.join(settings.MEDIA_ROOT)
@@ -281,19 +472,39 @@ def delete_product(request):
         resp['status'] = 'failed'
     return HttpResponse(json.dumps(resp), content_type="application/json")
 
+
 @login_required
 def pos(request):
-    products = Products.objects.filter(status = 1)
+    products = Products.objects.filter(status=1)
     product_json = []
     for product in products:
-        product_json.append({'id':product.id, 'name':product.name, 'price':float(product.price)})
+        features = product.features.all()
+        feature_data = [
+            {
+                'id': feature.id,
+                'color': feature.color.name,
+                'size': feature.size.name,
+                'stock': feature.stock
+            }
+            for feature in features
+        ]
+        product_json.append({
+            'id': product.id,
+            'name': product.name,
+            'price': float(product.price),
+            'stock': product.stock,
+            'features': feature_data
+        })
+
     context = {
-        'page_title' : "Punto de venta",
-        'products' : products,
-        'product_json' : json.dumps(product_json)
+        'page_title': "Punto de venta",
+        'products': products,
+        'product_json': json.dumps(product_json)
     }
-    # return HttpResponse('')
-    return render(request, 'posApp/pos.html',context)
+    return render(request, 'posApp/pos.html', context)
+
+
+
 
 @login_required
 def checkout_modal(request):
@@ -304,6 +515,8 @@ def checkout_modal(request):
         'grand_total' : grand_total,
     }
     return render(request, 'posApp/checkout.html',context)
+
+
 
 @login_required
 def save_pos(request):
@@ -334,11 +547,25 @@ def save_pos(request):
             total = float(qty) * float(price)
 
             # Update product stock
-            product.stock -= int(qty)  # Ensure qty is converted to integer for subtraction
+             # Ensure qty is converted to integer for subtraction
+            product.stock -= int(qty) 
             product.save()  # Save the updated stock
+            
+                # Verificar si hay un feature seleccionado para este producto
+            feature_id = data.getlist('feature_id[]')[i] if 'feature_id[]' in data else None
+            feature = None  # Inicializar el feature como None por defecto
 
-            print({'sale_id': sale, 'product_id': product, 'qty': qty, 'price': price, 'total': total})
-            salesItems(sale_id=sale, product_id=product, qty=qty, price=price, total=total).save()
+            if feature_id:
+                feature = ProductFeature.objects.filter(id=feature_id).first()
+                if feature:
+                    feature.stock -= int(qty) 
+                    feature.save()  # Guardar el stock actualizado en el feature
+
+            # Registrar el ítem en la venta
+            print({'sale_id': sale, 'product_id': product, 'feature_id': feature, 'qty': qty, 'price': price, 'total': total})
+                    
+                    
+            salesItems(sale_id=sale, product_id=product, feature_id=feature, qty=qty, price=price, total=total).save()
             i += 1
         resp['status'] = 'success'
         resp['sale_id'] = sale_id
@@ -428,15 +655,41 @@ def receipt(request):
     return render(request, 'posApp/receipt.html',context)
     # return HttpResponse('')
 
+
+
 @login_required
 def delete_sale(request):
-    resp = {'status':'failed', 'msg':''}
+    resp = {'status': 'failed', 'msg': ''}
     id = request.POST.get('id')
+    restore_stock = request.POST.get('restore_stock', 'false').lower() == 'true'  # Leer el parámetro de restauración
+    
     try:
-        delete = Sales.objects.filter(id = id).delete()
+        if restore_stock:
+            # Restaurar stock de los items antes de eliminar la venta
+            sale_items = salesItems.objects.filter(sale_id=id)
+            
+            for item in sale_items:
+                # Restaurar el stock del producto
+                product = item.product_id
+                product.stock += item.qty
+                product.save()
+                
+                # Restaurar el stock del feature si aplica
+                if item.feature_id:
+                    feature = item.feature_id
+                    feature.stock += item.qty
+                    feature.save()
+        
+        # Eliminar la venta y los items asociados
+        Sales.objects.filter(id=id).delete()
+        
         resp['status'] = 'success'
-        messages.success(request, 'Historial de venta eliminado.')
-    except:
-        resp['msg'] = "Ocurrio un error"
-        print("Unexpected error:", sys.exc_info()[0])
+        if restore_stock:
+            messages.success(request, 'Historial de venta eliminado y stock restaurado.')
+        else:
+            messages.success(request, 'Historial de venta eliminado sin restaurar el stock.')
+    except Exception as e:
+        resp['msg'] = f"Ocurrió un error: {str(e)}"
+        print("Unexpected error:", e)
+    
     return HttpResponse(json.dumps(resp), content_type='application/json')

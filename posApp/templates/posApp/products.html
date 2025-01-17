@@ -74,77 +74,122 @@
     </div>
   </div>
 
+
+
+
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
-    <div class="mdc-card">
-        <div class="table-responsive">
-            <table class="table table-striped table-bordered">
-                <colgroup>
-                    <col width="5%">
-                    <col width="20%">
-                    <col width="20%">
-                    <col width="25%">
-                    <col width="15%">
-                    <col width="5%">
-                    
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th class="text-center py-1">#</th>
-                        <th class="text-center py-1">Categoria</th>
-                        <th class="text-center py-1">Producto</th>
-                        <th class="text-center py-1">Descripcion</th>
-                        <th class="text-center py-1">Precio Unit.</th>
-                        <th class="text-center py-1">Stock</th>
-                        {% if request.user.is_superuser %}
-                        <th class="text-center py-1">Accion</th>
-                        {% endif %}
+  <div class="mdc-card">
+      <div class="row mb-3">
+        <div class="col-md-6 col-lg-4">
+          <form method="get" action="{% url 'product-page' %}">
+              <div class="input-group">
+                  <input type="text" name="search" class="form-control" placeholder="Buscar Producto" value="{{ request.GET.search }}">
+                  <button type="submit" class="btn btn-primary">Buscar</button>
+              </div>
+          </form>
+        </div>
+  
+      <div class="col-md-6 col-lg-4">
+          <form method="get" action="{% url 'product-page' %}">
+              <div class="input-group">
+                  <select name="category" id="category-filter" class="form-control">
+                      <option value="">Todas las categorías</option>
+                      {% for category_id in categories %}
+                          <option value="{{ category_id.id }}" {% if category_filter == category_id.id %}selected{% endif %}>
+                              {{ category_id.name }} 
+                          </option>
+                      {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-primary">Filtrar</button>
+              </div>
+          </form>
+      </div>
+      </div>
+      <div class="table-responsive">
+          <table class="table table-striped table-bordered">
+              <colgroup>
+                  <col width="5%">
+                  <col width="20%">
+                  <col width="20%">
+                  <col width="25%">
+                  <col width="15%">
+                  <col width="5%">
+              </colgroup>
+              <thead>
+                  <tr>
+                      <th class="text-center py-1">#</th>
+                      <th class="text-center py-1">Categoria</th>
+                      <th class="text-center py-1">Producto</th>
+                      <th class="text-center py-1">Descripcion</th>
+                      <th class="text-center py-1">Precio Unit.</th>
+                      <th class="text-center py-1">Stock</th>
+                      {% if request.user.is_superuser %}
+                      <th class="text-center py-1">Accion</th>
+                      {% endif %}
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for product in products %}
+                  <tr>
+                      <td class="px-2 py-1 text-center">{{ product.id }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.category_id }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.code }} - {{ product.name }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.description }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.price }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.stock }}</td>
+                      {% if request.user.is_superuser %}
 
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for product in products %}
-                    <tr>
-                        <td class="px-2 py-1 text-center">{{ product.id }}</td>
-                        <td class="px-2 py-1 text-start">{{ product.category_id }}</td>
-                        <td class="px-2 py-1 text-start">{{ product.code }} - {{ product.name }}</td>
-                        <td class="px-2 py-1 text-start">{{ product.description }}</td>
-                        <td class="px-2 py-1 text-start">{{ product.price }}</td>
-                        <td class="px-2 py-1 text-start">{{ product.stock }}</td>
-                        {% if request.user.is_superuser %}
-
-                        <td class="px-2 py-1 text-center">
-                          <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--light mdc-ripple-upgraded edit-data" type="button" data-id="{{ product.pk }}" title="Editar">
-                            <i class="material-icons mdc-button__icon">edit</i>
+                      <td class="px-2 py-1 text-center">
+                        <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--light mdc-ripple-upgraded edit-data" type="button" data-id="{{ product.pk }}" title="Editar">
+                          <i class="material-icons mdc-button__icon">edit</i>
                         </button>
                         <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--danger mdc-ripple-upgraded delete-data" type="button" data-id="{{ product.pk }}" title="Borrar">
                             <i class="material-icons mdc-button__icon">delete</i>
                         </button>
 
-                          <label for="fileInput{{ product.pk }}" class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded upload-image-button">
-                            <i class="fa-solid fa-upload "></i>
-                          </label>
-                          <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded foto" type="button" data-id="{{ product.pk }}" title=" Imagen">
+                        <label for="fileInput{{ product.pk }}" class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded upload-image-button">
+                          <i class="fa-solid fa-upload "></i>
+                        </label>
+                        <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded foto" type="button" data-id="{{ product.pk }}" title=" Imagen">
                             <i class="fa-solid fa-image"></i>
                         </button>
-                          <form method="post" action="{% url 'upload_file' %}" id="upload-file{{ product.pk }}" enctype="multipart/form-data">
-                            {% csrf_token %}
-                            <input type="hidden" name="directory" value="{{ product.pk }}"  data-id="{{ product.pk }}">
-                            <input id="fileInput{{ product.pk }}" class="d-none" onchange="submitForm({{ product.pk }})" type="file" name="file" accept="image/jpeg" required>                            
-                          </form>
+                        <form method="post" action="{% url 'upload_file' %}" id="upload-file{{ product.pk }}" enctype="multipart/form-data">
+                          {% csrf_token %}
+                          <input type="hidden" name="directory" value="{{ product.pk }}"  data-id="{{ product.pk }}">
+                          <input id="fileInput{{ product.pk }}" class="d-none" onchange="submitForm({{ product.pk }})" type="file" name="file" accept="image/jpeg" required>                            
+                        </form>
 
-                          <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--dark mdc-ripple-upgraded generate-qr" type="button" data-id="{{ product.pk }}" title=" QR">
-                              <i class="fa-solid fa-qrcode"></i>
-                          </button>
-                        </td>
-                        {% endif %}
+                        <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--dark mdc-ripple-upgraded generate-qr" type="button" data-id="{{ product.pk }}" title=" QR">
+                            <i class="fa-solid fa-qrcode"></i>
+                        </button>
+                      </td>
+                      {% endif %}
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
 
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+      <div class="d-flex justify-content-between mb-3">
+        <!-- Mostrar el total de productos -->
+        <div>
+            Mostrando {{ products.start_index }} - {{ products.end_index }} de {{ total_products }} productos
+        </div>
+    
+        <!-- Paginación -->
+        <div>
+            <div class="pagination">
+                {% for page_num in products.paginator.page_range %}
+                    <a href="?page={{ page_num }}&search={{ request.GET.search }}" class="page-link">{{ page_num }}</a>
+                {% endfor %}
+            </div>
         </div>
     </div>
+    
+  </div>
 </div>
+
+
 {% endblock pageContent %} {% block ScriptBlock %}
 <script>
     

@@ -78,24 +78,23 @@ class Sales(models.Model):
     def __str__(self):
         return self.code
 
-class salesItems(models.Model):
-    sale_id = models.ForeignKey(Sales,on_delete=models.CASCADE)
-    product_id = models.ForeignKey(Products,on_delete=models.CASCADE)
-    price = models.FloatField(default=0)
-    qty = models.FloatField(default=0)
-    total = models.FloatField(default=0)
-    
 #Caracteristicas
 
 class Size(models.Model):
     name = models.CharField(max_length=50, unique=True)  # Por ejemplo: "S", "M", "L", etc.
-
+    status = models.IntegerField(default=1) 
+    date_added = models.DateTimeField(default=timezone.now) 
+    date_updated = models.DateTimeField(auto_now=True) 
+    
     def __str__(self):
         return self.name
 
 class Color(models.Model):
     name = models.CharField(max_length=50, unique=True)  # Por ejemplo: "Rojo", "Azul", etc.
-
+    status = models.IntegerField(default=1) 
+    date_added = models.DateTimeField(default=timezone.now) 
+    date_updated = models.DateTimeField(auto_now=True) 
+    
     def __str__(self):
         return self.name
 
@@ -128,3 +127,14 @@ class ProductFeature(models.Model):
         Calcula el stock total de todas las características del producto.
         """
         return sum(feature.stock for feature in self.product.features.all())
+
+
+class salesItems(models.Model):
+    sale_id = models.ForeignKey(Sales,on_delete=models.CASCADE)
+    product_id = models.ForeignKey(Products,on_delete=models.CASCADE)
+    feature_id = models.ForeignKey(ProductFeature, on_delete=models.CASCADE, null=True, blank=True)  # Opcional
+    price = models.FloatField(default=0)
+    qty = models.FloatField(default=0)
+    total = models.FloatField(default=0)
+    
+

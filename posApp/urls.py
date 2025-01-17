@@ -14,6 +14,16 @@ urlpatterns = [
     path('manage_category', views.manage_category, name="manage_category-page"),
     path('save_category', views.save_category, name="save-category-page"),
     path('delete_category', views.delete_category, name="delete-category"),
+    path('color', views.color, name="color-page"),
+    path('manage_color', views.manage_color, name="manage_color-page"),
+    path('save_color', views.save_color, name="save-color-page"),
+    path('delete_color', views.delete_color, name="delete-color"),
+    
+    path('size', views.size, name="size-page"),
+    path('manage_size', views.manage_size, name="manage_size-page"),
+    path('save_size', views.save_size, name="save-size-page"),
+    path('delete_size', views.delete_size, name="delete-size"),
+
     path('product', views.products, name="product-page"),
     path('manage_products', views.manage_products, name="manage_products-page"),
     path('test', views.test, name="test-page"),

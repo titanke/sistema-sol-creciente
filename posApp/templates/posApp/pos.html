@@ -47,6 +47,12 @@
                                 {% endfor %}
                             </select>
                         </div>
+                        <div class="form-group mb-3 d-none" id="feature-select-container">
+                            <label for="feature-id">Seleccionar característica</label>
+                            <select id="feature-id" class="form-select form-select-sm">
+                                <option value="" disabled selected></option>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-lg-3 col-md-5 col-md-12">
                         <div class="form-group mb-3">
@@ -143,6 +149,8 @@
         <td class="px-2 py-1">
             <input type="hidden" name="product_id[]">
             <input type="hidden" name="price[]">
+            <input type="hidden" name="feature_id[]"> <!-- Asegúrate de incluir este campo -->
+
             <input type="number" name="qty[]" min="0" class="form-control form-control-sm rounded-0 text-center">
         </td>
         <td class="px-2 py-1 product_name text-start"></td>
@@ -158,12 +166,25 @@
         product_json = product_json.replaceAll('&quot;', '"')
         product_json = $.parseJSON(product_json)
     }
-    var prod_arr = {}
+
+    var prod_arr = {}; // Almacenará los productos
+    var feature_arr = {}; // Almacenará las características de los productos
+    
     if (Object.keys(product_json).length > 0) {
         Object.keys(product_json).map(k => {
-            prod_arr[product_json[k].id] = product_json[k]
-        })
+            var product = product_json[k];
+            prod_arr[product.id] = product; // Guardar el producto
+            // Procesar características del producto
+            if (product.features && product.features.length > 0) {
+                product.features.map(feature => {
+                    feature_arr[feature.id] = feature; // Guardar cada característica por su ID
+                });
+            }
+        });
     }
+    
+
+
 
     $("#scanQR").click(function(){
         $("#qrModal").modal('show');
@@ -172,7 +193,6 @@
 
       let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
       let beep = document.getElementById('beep');
-
 
 
       scanner.addListener('scan', function (content) {
@@ -213,6 +233,38 @@
           
         })
       });
+
+     //   
+
+    
+    $(document).ready(function () {
+        let productData = JSON.parse('{{ product_json|escapejs }}');
+    
+        $('#product-id').change(function () {
+            let productId = $(this).val();
+    
+            // Limpiar el campo de selección de características al cambiar el producto
+            $('#feature-id').empty().append('<option value="" disabled selected></option>');
+            $('#feature-select-container').addClass('d-none'); // Ocultar por defecto
+    
+            // Buscar el producto seleccionado
+            let selectedProduct = productData.find(product => product.id == productId);
+    
+            // Verificar si el producto existe
+            if (selectedProduct) {
+                if (selectedProduct.features.length > 0) {
+                    selectedProduct.features.forEach(feature => {
+                        $('#feature-id').append(
+                            `<option value="${feature.id}">${feature.color} - ${feature.size} (STK: ${feature.stock})</option>`
+                        );
+                    });
+                    $('#feature-select-container').removeClass('d-none'); // Mostrar el contenedor si hay características
+                }
+            }
+        });
+    });
+    
+    
 
     function calc() {
         var sub_total = 0;
@@ -265,6 +317,8 @@
         $('#add_item').click(function() {
             var id = $('#product-id').val()
             var qty = $('#product-qty').val()
+            var feature_id = $('#feature-id').val(); // Obtener el ID de la característica seleccionada
+
             console.log(id, qty)
             if (id == '' || qty == '' || id == null || qty == null) {
                 alert("El campo Producto y Cantidad es obligatorio")
@@ -276,11 +330,18 @@
                     return false;
                 }
                 data = prod_arr[id]
+                feature = feature_arr[feature_id] || {}; // Datos de la característica (asegúrate de tener feature_arr con información)
                 var tr = $($('noscript#item-clone').html()).clone()
                 tr.find('[name="qty[]"]').val(qty)
                 tr.find('[name="product_id[]"]').val(id)
                 tr.find('[name="price[]"]').val(data.price)
-                tr.find('.product_name').text(data.name)
+                tr.find('[name="feature_id[]"]').val(feature_id); // Añadir feature_id a la fila
+
+                var productName = data.name;
+                if (feature_id && feature.size) productName += " - Tamaño: " + feature.size;
+                if (feature_id && feature.color) productName += " - Color: " + feature.color;
+        
+                tr.find('.product_name').text(productName)
                 tr.find('.product_price').text(parseFloat(data.price).toLocaleString('en-US'))
                 tr.find('.product_total').text(parseFloat(data.price * qty).toLocaleString('en-US'))
                 $('#POS-field table tbody').append(tr)

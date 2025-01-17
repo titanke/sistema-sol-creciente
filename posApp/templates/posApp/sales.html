@@ -71,32 +71,44 @@
 
     })
 
-    function delete_sale($id) {
-        start_loader();
+    //Mostrar Checkbox Restaurar stock
+    $(document).ready(function () {
+        // Mostrar el checkbox al abrir el modal
+        $('#confirm_modal').on('show.bs.modal', function () {
+            $('#rest_stock_con').removeClass('d-none'); // Quita la clase para mostrar el checkbox
+        });
+    
+        // Ocultar el checkbox al cerrar el modal
+        $('#confirm_modal').on('hidden.bs.modal', function () {
+            $('#rest_stock_con').addClass('d-none'); // Añade la clase para ocultar el checkbox
+        });
+    });
+    
+    function delete_sale(id, restoreStock) {
+
         $.ajax({
             headers: {
                 "X-CSRFToken": '{{csrf_token}}'
             },
             url: "{% url 'delete-sale' %}",
-            method: "POST",
+            method: 'POST',
             data: {
-                id: $id
+                id: id,
+                restore_stock: restoreStock,
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
             },
-            dataType: "json",
-            error: err => {
-                console.log(err)
-                alert_toast("An error occured.", 'error');
-                end_loader();
-            },
-            success: function(resp) {
-                if (typeof resp == 'object' && resp.status == 'success') {
+            success: function (resp) {
+                if (resp.status === 'success') {
                     location.reload();
                 } else {
-                    alert_toast("An error occured.", 'error');
-                    end_loader();
+                    alert(resp.msg || 'No se pudo eliminar la venta.');
                 }
-            }
-        })
+            },
+            error: function () {
+                alert('Ocurrió un error al procesar la solicitud.');
+            },
+        });
     }
+    
 </script>
 {% endblock ScriptBlock %}

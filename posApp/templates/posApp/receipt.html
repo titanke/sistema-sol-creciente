@@ -44,7 +44,8 @@
               <div class="col-8 fw-bold text-center">  
                 
                 <div class="lh-6">
-                  <small>{{ item.product_id }}</small><br>
+                  <small>{{ item.product_id }} {% if item.feature_id %}{{ item.feature_id.color }}{% else %}{% endif %} {% if item.feature_id %}{{ item.feature_id.size }}{% else %}{% endif %}</small><br>
+
                 </div>
               </div>
               <div class="col-2 text-end fw-bold">{{ item.total|floatformat:2 }}</div>

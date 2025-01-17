@@ -112,22 +112,29 @@
             </div>
         </div>
     </div>
-    <div class="modal fade" id="confirm_modal" role='dialog'>
+
+
+    <div class="modal fade" id="confirm_modal" role="dialog">
         <div class="modal-dialog modal-md modal-dialog-centered" role="document">
             <div class="modal-content rounded-0">
                 <div class="modal-header">
-                    <h5 class="modal-title">Confirmacion</h5>
+                    <h5 class="modal-title">Confirmación</h5>
                 </div>
                 <div class="modal-body">
                     <div id="delete_content"></div>
+                    <div class="form-check d-none" id="rest_stock_con">
+                        <input type="checkbox" class="form-check-input" id="restore_stock_checkbox">
+                        <label class="form-check-label" for="restore_stock_checkbox">Restaurar stock de los productos</label>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-flat btn-primary rounded-0" id='confirm' onclick="">Continuar</button>
+                    <button type="button" class="btn btn-sm btn-flat btn-primary rounded-0" id="confirm" onclick="">Continuar</button>
                     <button type="button" class="btn btn-sm btn-flat btn-secondary rounded-0" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
+    
     <script>
 
             window.addEventListener('resize', function() {
@@ -139,8 +146,9 @@
                     drawer.classList.add('mdc-drawer--open');
                 }
             });
-            
-            
+
+
+           
         window.start_loader = function() {
             $('body').removeClass('loaded')
         }
@@ -175,11 +183,21 @@
                 }
             })
         }
-        window._conf = function($msg = '', $func = '', $params = []) {
-            $('#confirm_modal #confirm').attr('onclick', $func + "(" + $params.join(',') + ")")
-            $('#confirm_modal .modal-body').html($msg)
-            $('#confirm_modal').modal('show')
-        }
+   
+
+        window._conf = function ($msg = '', $func = '', $params = []) {
+            $('#confirm_modal #confirm').off('click').click(function () {
+                // Obtener el estado del checkbox
+                const restoreStock = $('#restore_stock_checkbox').is(':checked');
+                // Llamar a la función con los parámetros y el estado del checkbox
+                window[$func](...$params, restoreStock);
+            });
+            $('#confirm_modal .modal-body #delete_content').html($msg);
+            $('#restore_stock_checkbox').prop('checked', false); // Restablecer el estado del checkbox
+            $('#confirm_modal').modal('show');
+        };
+
+
         $(function() {
 
         })
