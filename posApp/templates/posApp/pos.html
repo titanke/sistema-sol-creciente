@@ -3,6 +3,7 @@
 
 <audio id="beep" src="https://bigsoundbank.com/UPLOAD/wav/1417.wav" preload="auto"></audio>
 
+<input type="text" id="barcode-input" style="position:absolute; left:-9999px;" autofocus />
 
 <!-- Modal -->
 <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
@@ -13,7 +14,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body d-flex flex-column align-items-center">
-              <video id="preview" style="width: 100%;"></video>
+            <div id="barcode-scanner" style="width: 100%; height: 300px;"></div>
             <!-- Aquí es donde se mostrará el texto del código QR -->
               <p id="qrText"></p>
           </div>
@@ -33,9 +34,12 @@
 </div>
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
     <div class="mdc-card">
+
         <form action="" id="pos-form">
             <fieldset>
                 <legend>Agregrar producto</legend>
+
+
                 <div class="row align-items-end">
                     <div class="col-lg-5 col-md-5 col-sm-12">
                         <div class="form-group mb-3">
@@ -43,7 +47,7 @@
                             <select id="product-id" class="form-select form-select-sm">
                                 <option value="--" disabled selected></option>
                                 {% for product in products %}
-                                    <option value="{{ product.pk }}">COD: {{ product.code }} - {{ product.name }} STK: {{ product.stock }}</option>
+                                    <option value="{{ product.pk }}" data-stock="{{ product.stock }}">COD: {{ product.id }} - {{ product.name }} STK: {{ product.stock }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -60,11 +64,24 @@
                             <input type="number" class="form-control form-control-sm text-center" step="any" id="product-qty" value="1">
                         </div>
                     </div>
+                    <div class="col-lg-4 col-md-4 col-sm-12">
+                        <div class="form-group mb-3 d-flex align-items-center">
+                            <div id="price-type-buttons" class="btn-group btn-group-sm me-2" role="group" aria-label="Tipo de Venta">
+                                <button type="button" class="btn btn-outline-secondary active" data-price-type="menor">Vta. Menor</button>
+                                <button type="button" class="btn btn-outline-secondary" data-price-type="mayor">Vta. Mayor</button>
+                            </div>
+                            <button class="btn btn-light btn-sm bg-gradient border rounded-0 text-start" type="button" id="add_item"><i class="mdi mdi-plus"></i> Agregar</button>
+                        </div>
+                    </div>
                     <div class="col-lg-4 col-md-2 col-md-12">
                         <div class="form-group mb-3">
-                            <button class="btn btn-light btn-sm bg-gradient border rounded-0 text-start" type="button" id="add_item"><i class="mdi mdi-plus"></i> Agregar</button>                            
-                            <button class="btn btn-light btn-sm bg-gradient border rounded-0 text-start" type="button" id="scanQR"><i class="mdi mdi-plus"></i> Escanear QR</button>                        </div>
-                
+                            <!-- 
+                                                        <button class="btn btn-light btn-sm bg-gradient border rounded-0 text-start" type="button" id="add_item"><i class="mdi mdi-plus"></i> Agregar</button>                            
+
+                                                        <button class="btn btn-light btn-sm bg-gradient border rounded-0 text-start" type="button" id="scanQR"><i class="mdi mdi-plus"></i> Escanear</button>                        </div>
+
+                            -->
+
                     </div>
 
                 </div>
@@ -77,14 +94,16 @@
                                 <col width="5%">
                                 <col width="15%">
                                 <col width="40%">
-                                <col width="20%">
-                                <col width="20%">
+                                <col width="15%">
+                                <col width="15%">
+                                <col width="15%">
                             </colgroup>
                             <thead>
                                 <tr class="bg-dark bg-gradient bg-opacity-50 text-light">
                                     <th class="py-1 px-2 text-center  text-light"></th>
                                     <th class="py-1 px-2 text-center  text-light">Cantidad</th>
                                     <th class="py-1 px-2 text-center  text-light">Producto</th>
+                                    <th class="py-1 px-2 text-center text-light">Tipo Precio</th>
                                     <th class="py-1 px-2 text-center  text-light">Precio</th>
                                     <th class="py-1 px-2 text-center  text-light">Total</th>
                                 </tr>
@@ -102,11 +121,14 @@
                                 </dd>
                             <dl>
                         
+                            <!-- 
                                 <dt class="h5 fw-bold text-light">Descuento</dt>
                                 <dd>
-                                    <input type="number" class="form-control rounded-0 text-end" step="any" min="0" max="100" name="descuento" value="0">
                                 </dd>
-                    
+                            -->
+                                    <input type="hidden" class="form-control rounded-0 text-end" step="any" min="0" max="100" name="descuento" value="0">
+
+
                                 <dt class="h5 fw-bold text-light">Impuestos (%)</dt>
                                 <dd>
                                     <input type="number" class="form-control rounded-0 text-end" step="any" min="0" max="100" name="tax" value="0">
@@ -123,6 +145,8 @@
                                 <dd class="text-end py-0 px-2 rounded-0 bg-light">
                                     <input type="hidden" name="grand_total" value="0">
                                     <input type="hidden" name="tendered_amount" value="0">
+                                    <input type="hidden" name="payment_type_id" >
+                                    <input type="hidden" name="pos_print_after_save" id="pos_print_after_save" value="false">
                                     <input type="hidden" name="amount_change" value="0">
                                     <input type="hidden" name="grand_total" value="0">
                                     <input type="hidden" name="grand_total" value="0">
@@ -154,7 +178,7 @@
             <input type="number" name="qty[]" min="0" class="form-control form-control-sm rounded-0 text-center">
         </td>
         <td class="px-2 py-1 product_name text-start"></td>
-        <td class="px-2 py-1 product_price text-end"></td>
+        <td class="px-2 py-1 product_price_type text-center fw-bold"></td> <td class="px-2 py-1 product_price text-end"></td>
         <td class="px-2 py-1 product_total text-end"></td>
     </tr>
 </noscript> {% endblock pageContent %} {% block ScriptBlock %}
@@ -182,84 +206,179 @@
             }
         });
     }
+
+    $('#price-type-buttons .btn').on('click', function() {
+        // Remover la clase 'active' de todos los botones del grupo
+        $('#price-type-buttons .btn').removeClass('active');
+        // Añadir la clase 'active' solo al botón clickeado
+        $(this).addClass('active');
+    });
+
     
 
+    //Escaner codigo barras
 
 
-    $("#scanQR").click(function(){
-        $("#qrModal").modal('show');
-      });
+  $(document).ready(function () {
+    let beep = document.getElementById('beep');
 
+    $('#barcode-input').on('keypress', function (e) {
+        if (e.which == 13) {  
+            e.preventDefault();
 
-      let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
-      let beep = document.getElementById('beep');
+            const rawCode = $(this).val().trim();
+            $(this).val(''); 
 
+            // Validar estructura tipo 99'2025
+            const match = rawCode.match(/^(\d+)'(\d{4})$/);
 
-      scanner.addListener('scan', function (content) {
-        const partes = content.split('-');
-      
-        const idProducto = partes[0];
-      
-        console.log(idProducto);
-        document.getElementById('qrText').innerText = idProducto;
-      
-        scanner.stop();
-      
-        beep.play();
-      
-        $('#product-id').val(idProducto);
-      
-        $('#product-qty').val(1);
-      
-        $("#qrModal").modal('hide');
-      });
+            if (match) {
+                const idProducto = match[1];
+                const anio = match[2];
+                console.log("ID escaneado:", idProducto);
+                console.log("Año:", anio);
 
-      $(document).ready(function(){
-        $("#scanQR").click(function(){
-          Instascan.Camera.getCameras().then(function (cameras) {
-            if (cameras.length > 0) {
-              scanner.start(cameras[0]);
+                $('#product-id').val(idProducto).trigger('change');
+                $('#product-qty').val(1);
+                beep.play();
             } else {
-              console.error('No cameras found.');
+                console.log("Código escaneado inválido: " + rawCode);
             }
-          }).catch(function (e) {
-            console.error(e);
-          });
-          $("#qrModal").modal('show');
-        });
-        $('#qrModal').on('hidden.bs.modal', function (e) {
-          document.getElementById('qrText').innerText = "";
-          scanner.stop();
-          
-        })
-      });
+        }
+    });
 
-     //   
+    $(window).on('click keydown', function () {
+        const activeElement = document.activeElement;
+        const tag = $(activeElement).prop('tagName');
 
-    
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+            $('#barcode-input').focus();
+        }
+    });
+
+    $('#barcode-input').focus();
+});
+
+
+    /*
     $(document).ready(function () {
+    let beep = document.getElementById('beep');
+
+    $("#scanQR").click(function () {
+        $('#qrModal').modal('show');
+        startScanner();
+    });
+
+    $('#qrModal').on('hidden.bs.modal', function () {
+        $('#qrText').text('');
+        Quagga.stop();
+    });
+
+    function startScanner() {
+        Quagga.init({
+        inputStream: {
+            type: "LiveStream",
+            target: document.querySelector('#barcode-scanner'), // Asegúrate de tener este div
+            constraints: {
+            facingMode: "environment"
+            }
+        },
+        decoder: {
+            readers: ["code_128_reader"] // Ajusta si usas otro tipo
+        }
+        }, function (err) {
+        if (err) {
+            console.error(err);
+            return;
+        }
+        Quagga.start();
+        });
+
+        Quagga.onDetected(function (result) {
+        const code = result.codeResult.code.trim();
+
+        // Validar formato: "95-S/.12.50"
+        const match = code.match(/^(\d+)-S\/\.\d+(\.\d{1,2})?$/);
+
+        if (match) {
+            const idProducto = match[1]; // Solo el ID
+
+            console.log("Código completo:", code);
+            console.log("ID producto:", idProducto);
+
+            // Sonar beep
+            beep.play();
+
+            $('#qrText').text(idProducto);
+            $('#product-id').val(idProducto).trigger('change');
+            $('#product-qty').val(1);
+            $('#qrModal').modal('hide');
+
+            Quagga.stop();
+        } else {
+            console.warn("Código no válido:", code);
+        }
+        });
+    }
+    });
+
+        */
+    //end barras
+
+
+    
+     $(document).ready(function () {
         let productData = JSON.parse('{{ product_json|escapejs }}');
-    
-        $('#product-id').change(function () {
+        const quantityInput = $('#product-qty');
+        const featureSelect = $('#feature-id');
+        const featureContainer = $('#feature-select-container');
+        const productSelect = $('#product-id');
+        // Evento al cambiar el producto seleccionado
+        productSelect.change(function () {
             let productId = $(this).val();
-    
-            // Limpiar el campo de selección de características al cambiar el producto
-            $('#feature-id').empty().append('<option value="" disabled selected></option>');
-            $('#feature-select-container').addClass('d-none'); // Ocultar por defecto
-    
-            // Buscar el producto seleccionado
             let selectedProduct = productData.find(product => product.id == productId);
     
-            // Verificar si el producto existe
+            // Limpiar características y ocultar el contenedor
+            featureSelect.empty().append('<option value="" disabled selected></option>');
+            featureContainer.addClass('d-none');
+    
             if (selectedProduct) {
+                // Manejar características si existen
                 if (selectedProduct.features.length > 0) {
                     selectedProduct.features.forEach(feature => {
-                        $('#feature-id').append(
-                            `<option value="${feature.id}">${feature.color} - ${feature.size} (STK: ${feature.stock})</option>`
+                        featureSelect.append(
+                            `<option value="${feature.id}" data-stock="${feature.stock}">
+                                ${feature.color} - ${feature.size} (STK: ${feature.stock})
+                            </option>`
                         );
                     });
-                    $('#feature-select-container').removeClass('d-none'); // Mostrar el contenedor si hay características
+                    featureContainer.removeClass('d-none');
                 }
+    
+                // Establecer el stock máximo para el producto general
+                quantityInput.attr('max', selectedProduct.stock || 0);
+                quantityInput.val(1); // Reiniciar cantidad
+            }
+        });
+    
+        // Evento al cambiar la característica seleccionada
+        featureSelect.change(function () {
+            let selectedFeature = $(this).find('option:selected');
+            let featureStock = parseInt(selectedFeature.data('stock')) || 0;
+    
+            // Actualizar el stock máximo basado en la característica seleccionada
+            quantityInput.attr('max', featureStock);
+            quantityInput.val(1); // Reiniciar cantidad
+        });
+    
+        // Validar cantidad ingresada
+        quantityInput.on('input', function () {
+            let maxStock = parseInt($(this).attr('max')) || 0;
+            let currentQty = parseInt($(this).val()) || 0;
+    
+            if (currentQty > maxStock) {
+                $(this).val(maxStock);
+                alert('No puedes agregar más cantidad que el stock disponible.');
             }
         });
     });
@@ -290,8 +409,7 @@
 
         var tax_amount = (parseFloat(sub_total)-descuento) * parseFloat(tax);
 
-        // Update subtotal after discount
-        //sub_total -= descuento;
+      
 
         $('#sub_total').text(parseFloat(sub_total).toLocaleString('en-US'));
         $('[name="sub_total"]').val(parseFloat(sub_total));
@@ -306,7 +424,8 @@
 
         grand_total = sub_total + tax_amount - descuento;
         $('#grand_total').text(parseFloat(grand_total).toLocaleString('en-US'));
-        $('[name="grand_total"]').val(parseFloat(grand_total));
+        $('[name="grand_total"]').val(parseFloat(grand_total).toLocaleString('en-US'));
+        
       }
     
     $(function() {
@@ -314,27 +433,91 @@
             placeholder: "Selecciona los productos",
             width: '100%'
         })
+
         $('#add_item').click(function() {
             var id = $('#product-id').val()
             var qty = $('#product-qty').val()
             var feature_id = $('#feature-id').val(); // Obtener el ID de la característica seleccionada
 
-            console.log(id, qty)
+            let productData = JSON.parse('{{ product_json|escapejs }}');
+            const productId = id;
+            const featureId = feature_id;
+            const selectedProduct = productData.find(product => product.id == productId);
+            
+
+    
+            // Validar que se seleccione una característica si el producto tiene características
+            if (selectedProduct && selectedProduct.features.length > 0 && !featureId) {
+                alert("Debe seleccionar una característica del producto antes de agregarlo");
+                return false;
+            }
+    
+    
             if (id == '' || qty == '' || id == null || qty == null) {
                 alert("El campo Producto y Cantidad es obligatorio")
                 return false
             }
+
+            if (qty == 0) {
+              alert("Cantidad no permitida")
+              return false
+            }
+
+            if (feature_id == '') {
+                alert("Debe seleccionar una característica del producto antes de agregarlo");
+                return false;
+            }
+            console.log(feature_id)
+
+            // Si el producto tiene características, se puede agregar varias veces con diferentes combinaciones
             if (!!prod_arr[id]) {
-                if ($('#POS-field table tbody input[name="product_id[]"][value="' + id + '"]').length > 0) {
-                    alert('El producto ya esta en la lista')
-                    return false;
+                // Si el producto tiene características, verificar si se ha agregado con la misma combinación de características
+                if (feature_id) {
+                    if ($('#POS-field table tbody input[name="feature_id[]"][value="' + feature_id + '"]').length > 0) {
+                        alert('El producto con las caracteristicas seleccionadas ya está en la lista');
+                        return false;
+                    }
+                } else {
+                    // Si el producto no tiene características, verificar si el producto ya está en la lista
+                    if ($('#POS-field table tbody input[name="product_id[]"][value="' + id + '"]').length > 0 &&
+                        $('#POS-field table tbody input[name="feature_id[]"][value=""]').length > 0) {
+                        alert('El producto ya está en la lista');
+                        return false;
+                    }
                 }
+
+
                 data = prod_arr[id]
-                feature = feature_arr[feature_id] || {}; // Datos de la característica (asegúrate de tener feature_arr con información)
+                feature = feature_arr[feature_id] || {};
+
+
+                // ================== INICIO DE LÓGICA DE PRECIOS ==================
+                
+                // 1. Determinar el tipo de precio seleccionado
+                var price_type_key = $('#price-type-buttons .btn.active').data('price-type');
+                var price_type_text = (price_type_key === 'mayor') ? 'Mayor' : 'Menor';
+                
+                // 2. Seleccionar el precio a usar
+                var selected_price = data.price; // Precio por menor por defecto
+                if (price_type_key === 'mayor' && data.p_mayor_venta && parseFloat(data.p_mayor_venta) > 0) {
+                    // Si se seleccionó "mayor" y el precio por mayor es válido (no es null, 0 o undefined)
+                    selected_price = data.p_mayor_venta;
+                } else if (price_type_key === 'mayor') {
+                    // Si se seleccionó "mayor" pero no hay precio válido, se usa el de menor y se indica
+                    price_type_text = 'Menor (N/A)'; 
+                }
+
+                // =================== FIN DE LÓGICA DE PRECIOS ====================
+
+
+
+
                 var tr = $($('noscript#item-clone').html()).clone()
+                var maxQty = feature_id && feature.stock ? feature.stock : data.stock;
+
                 tr.find('[name="qty[]"]').val(qty)
                 tr.find('[name="product_id[]"]').val(id)
-                tr.find('[name="price[]"]').val(data.price)
+                tr.find('[name="price[]"]').val(selected_price); 
                 tr.find('[name="feature_id[]"]').val(feature_id); // Añadir feature_id a la fila
 
                 var productName = data.name;
@@ -342,13 +525,21 @@
                 if (feature_id && feature.color) productName += " - Color: " + feature.color;
         
                 tr.find('.product_name').text(productName)
-                tr.find('.product_price').text(parseFloat(data.price).toLocaleString('en-US'))
-                tr.find('.product_total').text(parseFloat(data.price * qty).toLocaleString('en-US'))
+                tr.find('.product_price').text(parseFloat(selected_price).toLocaleString('en-US'));
+                tr.find('.product_price_type').text(price_type_text);
+
+                tr.find('.product_total').text(parseFloat(selected_price * qty).toLocaleString('en-US'));
                 $('#POS-field table tbody').append(tr)
                 $('#product-id').val('').trigger('change')
                 $('#product-qty').val(1)
                 calc()
                 tr.find('[name="qty[]"]').on('input keypress keyup keydown', function() {
+                    var currentQty = $(this).val();
+                    if (currentQty > maxQty) {
+                        $(this).val(maxQty);
+                        alert(`No puedes agregar más de ${maxQty} unidades del producto.`);
+                    }
+
                     calc()
                 })
                 tr.find('.rem-item').click(function() {
@@ -369,7 +560,30 @@
                 alert("Agregue al menos 1 producto primero")
                 return false;
             }
+
+
+            let valid = true;
+
+            $('#POS-field table tbody tr').each(function() {
+                const qty = parseFloat($(this).find('[name="qty[]"]').val());
+                if (!qty || qty <= 0) {
+                    valid = false;
+                    return false; 
+                }
+            });
+      
+            if (!valid) {
+                alert("Hay una cantidad inválida (0 o vacía). Verifica los productos.");
+                return; 
+            }
+            if ($('[name="grand_total"]').val() <0){
+                alert("El total no puede ser negativo")
+                return false;
+
+            }
+  
             uni_modal("Registrar", "{% url 'checkout-modal' %}?grand_total=" + $('[name="grand_total"]').val())
+
         })
         $('#pos-form').submit(function(e) {
             e.preventDefault();
@@ -403,10 +617,22 @@
                     if (typeof resp == 'object' && resp.status == 'success') {
                         el.removeClass("alert alert-danger err-msg")
                             // location.reload()
-                        uni_modal("Recibo", "{% url 'receipt-modal' %}?id=" + resp.sale_id)
-                        $('#uni_modal').on('hide.bs.modal', function() {
-                            location.reload()
-                        })
+
+
+                        if (resp.print) {
+                            const pdfUrl = `/receipt/pdf/?id=${resp.sale_id}`;
+                            window.open(pdfUrl, '_blank');
+                            location.reload();
+                        } else {
+                            uni_modal("Recibo", "{% url 'receipt-modal' %}?id=" + resp.sale_id)
+                            $('#uni_modal').on('hide.bs.modal', function() {
+                                location.reload()
+                            })
+                        }
+
+                    } else if (resp.status == 'error' && !!resp.msg) {
+                        el.text(resp.msg)   
+
                     } else if (resp.status == 'failed' && !!resp.msg) {
                         el.text(resp.msg)
                     } else {

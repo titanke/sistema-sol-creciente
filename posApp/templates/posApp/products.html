@@ -1,21 +1,37 @@
 {% extends "posApp/base.html" %} {% block pageContent %}
 <audio id="beep" src="https://bigsoundbank.com/UPLOAD/wav/1417.wav" preload="auto"></audio>
+<input type="text" id="barcode-input" autofocus style="opacity:0; position:absolute;" />
 
 
-<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
-    <div class="mdc-card py-2">
-        <div class="d-flex justify-content-between align-items-center">
-            <h4 class="card-title mb-0">Lista de productos</h4>
-            <div class="text-start">
-                {% if request.user.is_superuser %}
-                    <button class="btn btn-primary bg-gradient btn-sm rounded-0" id="create_new"><i class="mdi mdi-plus"></i><span> Agregar nuevo</span></button>
-                {% endif %}
-                <button class="btn btn-primary bg-gradient btn-sm rounded-0" id="scanQR"><i class="mdi mdi-plus"></i><span> Escanear producto</span></button>
+
+{% if request.user.is_superuser %}
+
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
+    <div class="mdc-card info-card info-card--success">
+        <div class="card-inner">
+            <h5 class="card-title">Total Inversión Productos</h5>
+            <h5 class="font-weight-light pb-2 mb-1 border-bottom">S/. {{ total_investment }}</h5>
+            <p class="tx-12 text-muted">Recuento de productos por precio</p>
+            <div class="card-icon-wrapper">
+                <i class="material-icons">list</i>
             </div>
-
         </div>
     </div>
 </div>
+
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
+    <div class="mdc-card info-card info-card--warning">
+        <div class="card-inner">
+            <h5 class="card-title">Ventas de hoy</h5>
+            <h5 class="font-weight-light pb-2 mb-1 border-bottom">S/. {{ total_sales }}</h5>
+            <p class="tx-12 text-muted">Total</p>
+            <div class="card-icon-wrapper">
+                <i class="mdi mdi-cash-multiple"></i>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 
 
@@ -24,14 +40,15 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="qrModalLabel">Código QR del Producto</h5>
+          <h5 class="modal-title" id="qrModalLabel">Código Barras del Producto</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body d-flex justify-content-center">
-          <img id="qrImage" src="" alt="Código QR" style="max-width: 100%;">
+          <img id="qrImage" src="" alt="Código Barras" style="max-width: 100%;">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            <a id="downloadQRBtn" href="#" download class="btn btn-primary">Descargar</a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         </div>
       </div>
     </div>
@@ -80,49 +97,74 @@
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
   <div class="mdc-card">
       <div class="row mb-3">
-        <div class="col-md-6 col-lg-4">
-          <form method="get" action="{% url 'product-page' %}">
-              <div class="input-group">
-                  <input type="text" name="search" class="form-control" placeholder="Buscar Producto" value="{{ request.GET.search }}">
-                  <button type="submit" class="btn btn-primary">Buscar</button>
-              </div>
-          </form>
-        </div>
-  
-      <div class="col-md-6 col-lg-4">
-          <form method="get" action="{% url 'product-page' %}">
-              <div class="input-group">
-                  <select name="category" id="category-filter" class="form-control">
-                      <option value="">Todas las categorías</option>
-                      {% for category_id in categories %}
-                          <option value="{{ category_id.id }}" {% if category_filter == category_id.id %}selected{% endif %}>
-                              {{ category_id.name }} 
-                          </option>
-                      {% endfor %}
-                  </select>
-                  <button type="submit" class="btn btn-primary">Filtrar</button>
-              </div>
-          </form>
-      </div>
+         <form method="get" action="{% url 'product-page' %}">
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-2">
+                    <input type="number" id="search-id" name="search_id" class="form-control" placeholder="Ingrese Código" value="{{ request.GET.search_id }}">
+                </div>
+               <div class="col-md-3">
+                    <input type="text" id="search-name" name="search" class="form-control" placeholder="Nombre del producto" value="{{ request.GET.search }}">
+                </div>
+
+                <div class="col-md-3">
+                    <select name="category" id="category-filter" class="form-select">
+                        <option value="">Categoria</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label for="status-filter" class="form-label">Estado</label>
+                    <select name="status" id="status-filter" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="1" {% if status_filter == '1' %}selected{% endif %}>Activo</option>
+                        <option value="0" {% if status_filter == '0' %}selected{% endif %}>Inactivo</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="d-flex">
+                        <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                        <a href="{% url 'product-page' %}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        {% if request.user.is_superuser %}
+            <div class="col-md-6 col-lg-3 text-end">
+              <button class="btn btn-primary bg-gradient btn-sm rounded-0" id="create_new"><i class="mdi mdi-plus"></i><span> Agregar nuevo</span></button>
+            </div>
+      {% endif %}
+
+   
       </div>
       <div class="table-responsive">
           <table class="table table-striped table-bordered">
               <colgroup>
                   <col width="5%">
-                  <col width="20%">
+                  <col width="15%">
                   <col width="20%">
                   <col width="25%">
-                  <col width="15%">
+                  <col width="10%">
+                  <col width="10%">
                   <col width="5%">
               </colgroup>
               <thead>
                   <tr>
-                      <th class="text-center py-1">#</th>
-                      <th class="text-center py-1">Categoria</th>
-                      <th class="text-center py-1">Producto</th>
+                      <th class="text-center py-1">Código</th>
+                      <th class="text-center py-1">Nombre Producto</th>
                       <th class="text-center py-1">Descripcion</th>
-                      <th class="text-center py-1">Precio Unit.</th>
+                      <th class="text-center py-1">Categoria</th>
+                      <th class="text-center py-1">P. Venta</th>
+                      <th class="text-center py-1">P. Venta Mayor</th>
                       <th class="text-center py-1">Stock</th>
+                      <th class="text-center py-1">Status</th>
                       {% if request.user.is_superuser %}
                       <th class="text-center py-1">Accion</th>
                       {% endif %}
@@ -132,11 +174,18 @@
                   {% for product in products %}
                   <tr>
                       <td class="px-2 py-1 text-center">{{ product.id }}</td>
-                      <td class="px-2 py-1 text-start">{{ product.category_id }}</td>
-                      <td class="px-2 py-1 text-start">{{ product.code }} - {{ product.name }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.name }}</td>
                       <td class="px-2 py-1 text-start">{{ product.description }}</td>
-                      <td class="px-2 py-1 text-start">{{ product.price }}</td>
+                      <td class="px-2 py-1 text-start">{{ product.category_id }}</td>
+                      <td class="px-2 py-1 text-start">S/. {{ product.price }}</td>
+                      <td class="px-2 py-1 text-start">S/. {{ product.p_mayor_venta }}</td>
                       <td class="px-2 py-1 text-start">{{ product.stock }}</td>
+                      <td class="px-2 py-1 text-center">
+                        {% if product.status == 1 %}
+                        <span class="badge bg-primary rounded-pill px-3">Activo</span> {% else %}
+                        <span class="badge bg-secondary rounded-pill px-3">Inactivo</span> {% endif %}
+                      </td>  
+
                       {% if request.user.is_superuser %}
 
                       <td class="px-2 py-1 text-center">
@@ -147,20 +196,12 @@
                             <i class="material-icons mdc-button__icon">delete</i>
                         </button>
 
-                        <label for="fileInput{{ product.pk }}" class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded upload-image-button">
-                          <i class="fa-solid fa-upload "></i>
-                        </label>
-                        <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded foto" type="button" data-id="{{ product.pk }}" title=" Imagen">
-                            <i class="fa-solid fa-image"></i>
+                 
+                        <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--blue mdc-ripple-upgraded foto" type="button" data-id="{{ product.image }}" title="Imagen">
+                          <i class="material-icons mdc-button__icon">image</i> {# Cambiado de fa-solid fa-image #}
                         </button>
-                        <form method="post" action="{% url 'upload_file' %}" id="upload-file{{ product.pk }}" enctype="multipart/form-data">
-                          {% csrf_token %}
-                          <input type="hidden" name="directory" value="{{ product.pk }}"  data-id="{{ product.pk }}">
-                          <input id="fileInput{{ product.pk }}" class="d-none" onchange="submitForm({{ product.pk }})" type="file" name="file" accept="image/jpeg" required>                            
-                        </form>
-
                         <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--dark mdc-ripple-upgraded generate-qr" type="button" data-id="{{ product.pk }}" title=" QR">
-                            <i class="fa-solid fa-qrcode"></i>
+                          <i class="fa-solid fa-barcode"></i>
                         </button>
                       </td>
                       {% endif %}
@@ -177,14 +218,64 @@
         </div>
     
         <!-- Paginación -->
-        <div>
-            <div class="pagination">
-                {% for page_num in products.paginator.page_range %}
-                    <a href="?page={{ page_num }}&search={{ request.GET.search }}" class="page-link">{{ page_num }}</a>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
+<nav aria-label="Navegación de Ventas">
+    <ul class="pagination justify-content-center">
+        {# Botón 'Anterior' #}
+        {% if products.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ products.previous_page_number }}&search={{ search_query }}&date_from={{ date_from }}&payment_type_id={{ payment_type_id }}" aria-label="Anterior">
+                    <span aria-hidden="true">&laquo;</span> Anterior
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link" aria-hidden="true">&laquo; Anterior</span>
+            </li>
+        {% endif %}
+
+        {# Números de Página #}
+        {% comment %}
+            Generar un rango limitado de páginas:
+            Muestra siempre la primera página, luego algunas alrededor de la página actual,
+            y la última página, con puntos suspensivos si hay saltos grandes.
+        {% endcomment %}
+        {% for num in products.paginator.page_range %}
+            {% if num == products.number %} {# Página actual #}
+                <li class="page-item active" aria-current="page">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% elif num > products.number|add:"-3" and num < products.number|add:"3" %} {# 2 páginas antes y 2 después #}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&date_from={{ date_from }}&payment_type_id={{ payment_type_id }}">{{ num }}</a>
+                </li>
+            {% elif num == products.paginator.num_pages and products.number|add:"3" < products.paginator.num_pages %} {# Última página con ellipsis si hay salto #}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&date_from={{ date_from }}&payment_type_id={{ payment_type_id }}">{{ num }}</a>
+                </li>
+            {% elif num == 1 and products.number|add:"-3" > 1 %} {# Primera página con ellipsis si hay salto #}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&date_from={{ date_from }}&payment_type_id={{ payment_type_id }}">{{ num }}</a>
+                </li>
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% endif %}
+        {% endfor %}
+
+        {# Botón 'Siguiente' #}
+        {% if sale_data.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ sale_data.next_page_number }}&search={{ search_query }}&date_from={{ date_from }}&payment_type_id={{ payment_type_id }}" aria-label="Siguiente">
+                    Siguiente <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link" aria-hidden="true">Siguiente &raquo;</span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+      </div>
     
   </div>
 </div>
@@ -216,55 +307,36 @@ function submitForm(product_pk) {
   document.getElementById("upload-file" + product_pk).submit();
 }
 
-//
-      $("#scanQR").click(function(){
-        $("#qrModal2").modal('show');
 
-      });
+    // Detalles producto escaneado
 
-      let scanner = new Instascan.Scanner({ video: document.getElementById('preview') });
-      let beep = document.getElementById('beep');
+let beep2 = document.getElementById('beep');
 
-      scanner.addListener('scan', function (content) {
-        const partes = content.split('-');
-      
-        const idProducto = partes[1];
-      
-        console.log(idProducto);
-        document.getElementById('qrText').innerText = content;
-        document.getElementById('preview').style.width = '0%';
-        document.getElementById('preview').style.opacity = 1; // Reset video opacity
-        scanner.stop();
-      
-        beep.play();
+document.getElementById('barcode-input').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        const content = this.value.trim();  
 
-        $('#product-id').val(idProducto);
-      
-        $('#product-qty').val(1);
-    
-      });
+        const match = content.match(/^(\d+)-S\/\.\d+(\.\d{1,2})?$/);  // ejemplo: 95-S/.12.50
 
-      $(document).ready(function(){
-        
-        $("#scanQR").click(function(){
-          Instascan.Camera.getCameras().then(function (cameras) {
-            if (cameras.length > 0) {
-              scanner.start(cameras[0]);
-            } else {
-              console.error('No cameras found.');
-            }
-          }).catch(function (e) {
-            console.error(e);
-          });
-          $("#qrModal2").modal('show');
-        });
-        $('#qrModal2').on('hidden.bs.modal', function (e) {
-          document.getElementById('qrText').innerText = "";
-          document.getElementById('preview').style.width = '100%';
-          scanner.stop();
-          
-        })
-      });
+        if (match) {
+            const idProducto = match[1]; 
+            console.log("Producto escaneado:", idProducto);
+
+            document.getElementById('qrText').innerText = content;
+            beep2.play();
+
+            $("#qrModal2").modal('show');
+        } else {
+            console.log("Código inválido o vacío:", content);
+        }
+
+        this.value = ''; 
+    }
+});
+
+
+    //
+
 
     $(function() {
         $('#create_new').click(function() {
@@ -286,33 +358,36 @@ function submitForm(product_pk) {
         })
     })
 
+
     function delete_product($id) {
-        start_loader();
-        $.ajax({
-            headers: {
-                "X-CSRFToken": '{{csrf_token}}'
-            },
-            url: "{% url 'delete-product' %}",
-            method: "POST",
-            data: {
-                id: $id
-            },
-            dataType: "json",
-            error: err => {
-                console.log(err)
-                alert_toast("Ocurrio un error", 'error');
-                end_loader();
-            },
-            success: function(resp) {
-                if (typeof resp == 'object' && resp.status == 'success') {
-                    location.reload();
-                } else {
-                    alert_toast("Ocurrio un error", 'error');
-                    end_loader();
-                }
-            }
-        })
-    }
+      start_loader();
+      $.ajax({
+          headers: {
+              "X-CSRFToken": '{{csrf_token}}'
+          },
+          url: "{% url 'delete-product' %}",
+          method: "POST",
+          data: {
+              id: $id
+          },
+          dataType: "json",
+          error: err => {
+              console.log(err);
+              alert("Ocurrió un error al intentar eliminar el producto.");
+              end_loader();
+          },
+          success: function(resp) {
+              if (typeof resp == 'object' && resp.status == 'success') {
+                  location.reload();
+              } else if (resp.status == 'failed' && resp.message) {
+                  alert(resp.message); // Mostrar el mensaje personalizado del backend
+              } else {
+                  alert("Ocurrió un error inesperado.");
+              }
+              end_loader();
+          }
+      });
+  }
 //
 $('.generate-qr').click(function() {
     var product_id = $(this).attr('data-id');
@@ -333,25 +408,37 @@ function generate_qr(product_id) {
         dataType: "json",
         error: err => {
             console.log(err)
-            alert_toast("Ocurrio un error", 'error');
+            alert_toast("Ocurrió un error", 'error');
         },
         success: function(resp) {
-            if (typeof resp == 'object' && resp.status == 'success') {
-                // Aquí puedes mostrar el código QR en un modal
+            if (typeof resp === 'object' && resp.status === 'success') {
+                // Mostrar la imagen del código de barras
                 $('#qrModal img').attr('src', resp.qr_url);
+
+                // Configurar el botón de descarga
+                $('#downloadQRBtn').attr('href', resp.qr_url);
+                $('#downloadQRBtn').attr('download', `${product_id}.png`);
+
+                // Mostrar el modal
                 $('#qrModal').modal('show');
             } else {
-                alert_toast("Ocurrio un error", 'error');
+                alert_toast("Ocurrió un error", 'error');
             }
         }
-    })
+    });
 }
+
+
 $('.foto').click(function() {
-  var imageUrl = "media/products/"+$(this).attr('data-id')+".jpg";  
-  imageUrl = imageUrl.replace(/%/g, ' ');  
-  $('#a').attr('src', imageUrl);
+  var productId = $(this).attr('data-id');
+  console.log(productId);
+  // Asegurarse de que la URL esté bien formateada
+  productId = productId.replace(/%/g, ' ');
+  $('#a').attr('src', productId);
+  // Mostrar el modal
   $('#fotoModal').modal('show');
 });
+
 
 
 </script>

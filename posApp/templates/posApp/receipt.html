@@ -5,24 +5,20 @@
     }
 </style>
 <div class="container-fluid">
-    <div id="outprint">
-        <div class="lh-1">
             <center><small class="fw-bold">SOL CRECIENTE STORE</small></center>
 
             <center><small class="fw-bold">BOLETA DE VENTA ELECTRONICA</small></center>
             <center><small class="fw-bold">CODIGO DE TRANSACCION: {{ transaction.code }}</small></center>
 
+            <small class="fw-bold">---------------------------------------------------------------------------------</small>
+            <span>Fecha: </span>{{ transaction.date_added|date:"d/m/Y" }} <br>
+            <span>Hora: </span>{{ transaction.date_added|date:"H:i" }} <br>
+            <span>De      : Yessica Marisol Colquehuanca</span> <br>
+            <span>RUC     : 10479805721</span>  <br>
+            <span>Telefono: 942352219</span>  <br>
+
         </div>
-        <hr>
-        <div class="lh-1">
-            <div>
-                {{ transaction.date_added|date:"d M Y" }} <br>
-                <span>De      : Yessica Marisol Colquehuanca</span> <br>
-                <span>RUC     : 10479805721</span>  <br>
-                <span>Telefono: 942352219</span>  <br>
-            </div>
-        </div>
-        <hr>
+        <small class="fw-bold">---------------------------------------------------------------------------------</small>
 
         <div class="clear-fix py-1"></div>
         <div class="lh-1">
@@ -52,7 +48,7 @@
             </div>
             {% endfor %}
 
-            <hr>
+            <small class="fw-bold">---------------------------------------------------------------------------------</small>
             <div class="d-flex w-100 align-items-end">
                 <div class="col-6 text-start fw-bold">Subtotal</div>
                 <div class="col-6 text-end fw-bold">{{ transaction.sub_total|floatformat:2 }}</div>
@@ -61,6 +57,13 @@
                 <div class="col-6 text-start fw-bold">Descuento</div>
                 <div class="col-6 text-end fw-bold">{{ transaction.descuento|intcomma }}</div>
             </div>
+                                    
+            <!-- 
+                <dt class="h5 fw-bold text-light">Descuento</dt>
+                <dd>
+                    <input type="number" class="form-control rounded-0 text-end" step="any" min="0" max="100" name="descuento" value="0">
+                </dd>
+            -->
             <div class="d-flex w-100 align-items-end">
                 <div class="col-6 text-start fw-bold">IGV <small></small>: {{ transaction.tax|intcomma }} %</div>
                 <div class="col-6 text-end fw-bold">{{ transaction.tax_amount|intcomma|floatformat:0 }}</div>
@@ -69,7 +72,7 @@
                 <div class="col-6 text-start fw-bold">Total</div>
                 <div class="col-6 text-end fw-bold">{{ transaction.grand_total|floatformat:2 }}</div>
             </div>
-            <hr>
+            <small class="fw-bold">---------------------------------------------------------------------------------</small>
 
             <div class="d-flex w-100 align-items-end">
                 <div class="col-6 text-start fw-bold">Recibido</div>
@@ -83,34 +86,35 @@
 
         </div>
     </div>
-    <hr>
     <div class="clear-fix py-3"></div>
     <div class="d-flex w-100 justify-content-end">
-        <button class="btn btn-light bg-gradient border rounded-0 btn-sm me-1" type="button" id="receipt_print"><i class="mdi mdi-printer"></i> Imprimir</button>
+        <button class="btn btn-light bg-gradient border rounded-0 btn-sm me-1" type="button" id="receipt_print" data-sale-id="{{ transaction.id }}">
+            <i class="mdi mdi-printer"></i> Imprimir
+        </button>        
         <button class="btn btn-secondary bg-gradient border rounded-0 btn-sm" type="button" data-bs-dismiss="modal"><i class="mdi mdi-close"></i> Cerrar</button>
     </div>
 </div>
+
 <script>
-    $(function() {
-        $('#receipt_print').click(function() {
-            var head = $('head').clone()
-            var p = $('#outprint').clone()
-            var el = $("<div>")
-            head.append('<style>body{background-color:unset !important}</style>')
-            el.append(head)
-            el.find('title').text("Receipt - Print View")
-            el.append(p)
-            start_loader()
-            var nw = window.open('', '_blank', "width=800,height=800,left=300, top = 200")
-            nw.document.write(el.html())
-            nw.document.close()
-            setTimeout(() => {
-                nw.print()
-                setTimeout(() => {
-                    nw.close()
-                    end_loader()
-                }, 250)
-            }, 300)
-        })
-    })
+    $(function () {
+        $('#receipt_print').click(function () {
+            const saleId = $(this).data('sale-id');
+            if (!saleId) {
+                console.error("❌ ID de venta no proporcionado en #receipt_print");
+                return;
+            }
+
+            const pdfUrl = `/receipt/pdf/?id=${saleId}`;
+            window.open(pdfUrl, '_blank');
+        });
+
+        const autoPrint = document.getElementById('auto_print_ticket')?.value === '1';
+        if (autoPrint) {
+            const saleId = document.getElementById('auto_print_ticket')?.dataset.saleId;
+            if (saleId) {
+                const pdfUrl = `/receipt/pdf/?id=${saleId}`;
+                setTimeout(() => window.open(pdfUrl, '_blank'), 1);
+            }
+        }
+    });
 </script>

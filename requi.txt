@@ -2,4 +2,7 @@ whitenoise
 django
 flask
 qrcode
+python-barcode
 pillow
+reportlab
+Faker

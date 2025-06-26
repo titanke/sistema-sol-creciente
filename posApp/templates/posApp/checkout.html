@@ -5,6 +5,19 @@
             <label for="payable_amount" class="control-label">Monto a pagar</label>
             <input type="text" id="payable_amount" class="form-control form-control-lg rounded-0 text-end" value="{{ grand_total|intcomma }}" required disabled>
         </div>
+
+        <div class="form-group mb-3">
+            <label for="payment_type_id" class="control-label">Tipo de Pago</label>
+            <select id="payment_type_id" class="form-select form-select-sm rounded-0" required>
+                <option value=""></option>
+                {% for pay in payment %}
+                    {% if product.pay_id.name == pay.name %}
+                    {% else %}
+                    <option value="{{ pay.id }}">{{ pay.name }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
         <div class="form-group mb-3">
             <label for="tendered_amount" class="control-label"></label>
             <input type="number" step="any" id="tendered_amount" class="form-control form-control-lg rounded-0 text-end" value="0" required>
@@ -14,18 +27,29 @@
             <input type="text" id="payment_change" class="form-control form-control-lg rounded-0 text-end" value="{{ 0|intcomma }}" required disabled>
         </div>
     </form>
+
+    <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="print_after_save" name="print_after_save" checked>
+        <label class="form-check-label" for="print_after_save">Imprimir ticket</label>
+    </div>
+
 </div>
 <script>
+
+
     $(function() {
         $('#tendered_amount').on('input keypress keyup keydown', function() {
-            var tendered_amount = $('#tendered_amount').val()
             var payable = $('#payable_amount').val()
-            tendered_amount = tendered_amount.replace(/,/gi, '')
-            payable = payable.replace(/,/gi, '')
+            var tendered_amount = $(this).val(); 
+
+            payable = parseFloat(payable.replace(/,/g, '')) || 0;
+            tendered_amount = parseFloat(tendered_amount.replace(/,/g, '')) || 0;
+
             var change = 0
-            tendered_amount = tendered_amount > 0 ? tendered_amount : 0;
+            //tendered_amount = tendered_amount > 0 ? tendered_amount : 0;
             $('[name="tendered_amount"]').val(tendered_amount)
             change = parseFloat(tendered_amount) - parseFloat(payable)
+            console.log()
             console.log(tendered_amount, payable)
             $('#payment_change').val(parseFloat(change).toLocaleString('en-US'))
             $('[name="amount_change"]').val(change)
@@ -33,6 +57,28 @@
         })
         $('#checkout-form').submit(function(e) {
             e.preventDefault();
+            
+            var payment_type_id = $('#payment_type_id').val()
+            $('[name="payment_type_id"]').val(payment_type_id)
+
+            const printChecked = $('#print_after_save').is(':checked');
+            $('#pos_print_after_save').val(printChecked ? 'true' : 'false');
+
+
+            if (!this.checkValidity()) {
+                // Mostrar mensajes de error
+                this.reportValidity();
+                return false;
+            }
+        
+
+
+            if ($('[name="tendered_amount"]').val() <= 0) {
+                alert("El monto ofrecido debe ser mayor que 0")
+                return false;
+            }
+
+
             if ($('[name="amount_change"]').val() < 0) {
                 alert("El monto ofrecido es menor que el monto a pagar")
                 return false;

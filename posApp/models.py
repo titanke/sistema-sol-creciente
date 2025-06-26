@@ -2,7 +2,7 @@ from datetime import datetime
 from unicodedata import category
 from django.db import models
 from django.utils import timezone
-
+from django.contrib.auth.models import User
 # Create your models here.
 
 # class Employees(models.Model):
@@ -35,20 +35,19 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-
-
-
 class Products(models.Model):
-    code = models.CharField(max_length=100)
-    category_id = models.ForeignKey(Category, on_delete=models.CASCADE)
+    category_id = models.ForeignKey(Category, on_delete=models.RESTRICT)
     name = models.TextField()
     description = models.TextField()
     price = models.FloatField(default=0)
-    p_mayor = models.FloatField(default=0)
+    p_mayor_compra = models.FloatField(default=0)
+    p_mayor_venta = models.FloatField(default=0)
     stock = models.IntegerField(default=0)
     status = models.IntegerField(default=1) 
     date_added = models.DateTimeField(default=timezone.now) 
     date_updated = models.DateTimeField(auto_now=True)
+    image = models.URLField(max_length=200, blank=True, null=True)  
+
     #image = models.ImageField(upload_to='products/', null=True, blank=True)  
     """
     def delete(self, *args, **kwargs):
@@ -57,11 +56,21 @@ class Products(models.Model):
       
     """
     def __str__(self):
-        return self.code + " - " + self.name
+        return str(self.id) + " - " + self.name
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='products/', null=True, blank=True)  
+
+    
+class PaymentType(models.Model):
+    name = models.TextField()
+    status = models.IntegerField(default=1) 
+    date_added = models.DateTimeField(default=timezone.now) 
+    date_updated = models.DateTimeField(auto_now=True) 
+
+    def __str__(self):
+        return self.name
 
 class Sales(models.Model):
     code = models.CharField(max_length=100)
@@ -70,8 +79,10 @@ class Sales(models.Model):
     descuento = models.FloatField(default=0)
     tax_amount = models.FloatField(default=0)
     tax = models.FloatField(default=0)
+    payment_type_id = models.ForeignKey(PaymentType, on_delete=models.RESTRICT)
     tendered_amount = models.FloatField(default=0)
     amount_change = models.FloatField(default=0)
+    user_id = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     date_added = models.DateTimeField(default=timezone.now) 
     date_updated = models.DateTimeField(auto_now=True) 
 
@@ -97,12 +108,12 @@ class Color(models.Model):
     
     def __str__(self):
         return self.name
-
+    
 
 class ProductFeature(models.Model):
     product = models.ForeignKey(Products, on_delete=models.CASCADE, related_name="features")
-    size = models.ForeignKey(Size, on_delete=models.CASCADE)  # Relación con la tabla de tallas
-    color = models.ForeignKey(Color, on_delete=models.CASCADE)  # Relación con la tabla de colores
+    size = models.ForeignKey(Size, on_delete=models.RESTRICT)  # Relación con la tabla de tallas
+    color = models.ForeignKey(Color, on_delete=models.RESTRICT)  # Relación con la tabla de colores
     stock = models.IntegerField(default=0)  # Stock de esta combinación específica
 
     class Meta:
@@ -131,7 +142,7 @@ class ProductFeature(models.Model):
 
 class salesItems(models.Model):
     sale_id = models.ForeignKey(Sales,on_delete=models.CASCADE)
-    product_id = models.ForeignKey(Products,on_delete=models.CASCADE)
+    product_id = models.ForeignKey(Products,on_delete=models.RESTRICT)
     feature_id = models.ForeignKey(ProductFeature, on_delete=models.CASCADE, null=True, blank=True)  # Opcional
     price = models.FloatField(default=0)
     qty = models.FloatField(default=0)

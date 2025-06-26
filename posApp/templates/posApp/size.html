@@ -78,6 +78,8 @@
 
     })
 
+
+    
     function delete_size($id) {
         start_loader();
         $.ajax({
@@ -91,19 +93,21 @@
             },
             dataType: "json",
             error: err => {
-                console.log(err)
-                alert_toast("Ocurrio un error.", 'error');
+                console.log(err);
+                alert("Ocurrió un error al intentar eliminar la talla.");
                 end_loader();
             },
             success: function(resp) {
                 if (typeof resp == 'object' && resp.status == 'success') {
                     location.reload();
+                } else if (resp.status == 'failed' && resp.message) {
+                    alert(resp.message); // Mostrar el mensaje personalizado del backend
                 } else {
-                    alert_toast("Ocurrio un error.", 'error');
-                    end_loader();
+                    alert("Ocurrió un error inesperado.");
                 }
+                end_loader();
             }
-        })
+        });
     }
 </script>
 {% endblock ScriptBlock %}

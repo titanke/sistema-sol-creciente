@@ -19,6 +19,11 @@ urlpatterns = [
     path('save_color', views.save_color, name="save-color-page"),
     path('delete_color', views.delete_color, name="delete-color"),
     
+    path('payment', views.payment, name="payment-page"),
+    path('manage_payment', views.manage_payment, name="manage_payment-page"),
+    path('save_payment', views.save_payment, name="save-payment-page"),
+    path('delete_payment', views.delete_payment, name="delete-payment"),
+    
     path('size', views.size, name="size-page"),
     path('manage_size', views.manage_size, name="manage_size-page"),
     path('save_size', views.save_size, name="save-size-page"),
@@ -36,6 +41,7 @@ urlpatterns = [
     path('save-pos', views.save_pos, name="save-pos"),
     path('sales', views.salesList, name="sales-page"),
     path('receipt', views.receipt, name="receipt-modal"),
+    path('receipt/pdf/', views.receipt_pdf, name='receipt_pdf'),
     path('delete_sale', views.delete_sale, name="delete-sale"),
     # path('employees', views.employees, name="employee-page"),
     # path('manage_employees', views.manage_employees, name="manage_employees-page"),
