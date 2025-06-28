@@ -96,17 +96,17 @@
 
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
   <div class="mdc-card">
-      <div class="row mb-3">
-         <form method="get" action="{% url 'product-page' %}">
+<div class="row mb-3 align-items-end">
+    <!-- Formulario de filtros -->
+    <div class="col-12 col-lg-10">
+        <form method="get" action="{% url 'product-page' %}">
             <div class="row g-3 align-items-end">
-
                 <div class="col-md-2">
                     <input type="number" id="search-id" name="search_id" class="form-control" placeholder="Ingrese Código" value="{{ request.GET.search_id }}">
                 </div>
-               <div class="col-md-3">
+                <div class="col-md-3">
                     <input type="text" id="search-name" name="search" class="form-control" placeholder="Nombre del producto" value="{{ request.GET.search }}">
                 </div>
-
                 <div class="col-md-3">
                     <select name="category" id="category-filter" class="form-select">
                         <option value="">Categoria</option>
@@ -117,33 +117,31 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="col-md-2">
-                    <label for="status-filter" class="form-label">Estado</label>
                     <select name="status" id="status-filter" class="form-select">
                         <option value="">Todos</option>
                         <option value="1" {% if status_filter == '1' %}selected{% endif %}>Activo</option>
                         <option value="0" {% if status_filter == '0' %}selected{% endif %}>Inactivo</option>
                     </select>
                 </div>
-
-                <div class="col-md-2">
-                    <div class="d-flex">
-                        <button type="submit" class="btn btn-primary me-2">Filtrar</button>
-                        <a href="{% url 'product-page' %}" class="btn btn-secondary">Limpiar</a>
-                    </div>
+                <div class="col-md-2 d-flex">
+                    <button type="submit" class="btn btn-primary me-2">Filtrar</button>
+                    <a href="{% url 'product-page' %}" class="btn btn-secondary">Limpiar</a>
                 </div>
             </div>
         </form>
+    </div>
 
-        {% if request.user.is_superuser %}
-            <div class="col-md-6 col-lg-3 text-end">
-              <button class="btn btn-primary bg-gradient btn-sm rounded-0" id="create_new"><i class="mdi mdi-plus"></i><span> Agregar nuevo</span></button>
-            </div>
-      {% endif %}
+    <!-- Botón agregar nuevo -->
+    {% if request.user.is_superuser %}
+    <div class="col-12 col-lg-2 text-end">
+        <button class="btn btn-primary bg-gradient btn-sm rounded-0 w-100" id="create_new">
+            <i class="mdi mdi-plus"></i><span> Agregar nuevo</span>
+        </button>
+    </div>
+    {% endif %}
+</div>
 
-   
-      </div>
       <div class="table-responsive">
           <table class="table table-striped table-bordered">
               <colgroup>
@@ -189,6 +187,7 @@
                       {% if request.user.is_superuser %}
 
                       <td class="px-2 py-1 text-center">
+                                         
                         <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--light mdc-ripple-upgraded edit-data" type="button" data-id="{{ product.pk }}" title="Editar">
                           <i class="material-icons mdc-button__icon">edit</i>
                         </button>

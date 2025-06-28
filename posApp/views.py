@@ -1128,16 +1128,28 @@ def receipt_pdf(request):
 
     # Items
     for item in items:
-        name = f"{item.product_id.name}"
-        qty_price = f"{item.qty} x S/ {item.total/item.qty:.2f}"
+        # Construir el nombre con color y talla si existen
+        name_parts = [item.product_id.name]
+        if item.feature_id:
+            if item.feature_id.color:
+                name_parts.append(str(item.feature_id.color))
+            if item.feature_id.size:
+                name_parts.append(str(item.feature_id.size))
+        
+        full_name = " - ".join(name_parts)  # Producto - color - talla
+        qty_price = f"{item.qty} x S/ {item.total / item.qty:.2f}"
+
+        # Dibujar en la misma línea
         p.setFont("Courier-Bold", 8)
-        p.drawString(5 * mm, y, name)
+        p.drawString(5 * mm, y, full_name)
         p.drawRightString(ticket_width - 5 * mm, y, qty_price)
         y -= line_height
 
-    draw_sep()
+
 
     # Total
+    draw_sep()
+
     draw_left("Total:", size=8, move=0)
     draw_right(f"S/ {sale.grand_total:.2f}", size=8, move=1)
     draw_sep()

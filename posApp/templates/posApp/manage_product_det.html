@@ -1,0 +1,236 @@
+
+<div class="container-fluid">
+      
+    <form action="" id="product-form">
+        <input type="hidden" name="id" value="{% if product.pk %}{{product.pk}}{% endif %}">
+        <input type="hidden" name="deleted_features" id="deleted-features" value="">
+
+
+        <div class="form-group mb-3">
+
+            <div class="form-group mb-3">
+                <label for="stock" class="control-label">Stock</label>
+                <input type="text" name="stock" id="stock" class="form-control form-control-sm rounded-0" value="{% if product.stock %}{{product.stock}}{% endif %}" required>
+            </div>
+          
+               <!-- Campo para características -->
+            <div class="form-group mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <label class="control-label me-2">Características</label>
+                    <button type="button" id="add-feature" class="btn btn-success btn-sm"><i class="mdi mdi-plus"></i>Agregar característica</button>
+                </div>
+                <div id="features-container">
+                    {% for feature in features %}
+                    <div class="feature-row d-flex align-items-center mb-2" data-feature-id="{{ feature.id }}">
+                        <select name="feature_color[]" class="form-select me-2" required>
+                            {% for color in colors %}
+                            <option value="{{ color.id }}" {% if feature.color.id == color.id %}selected{% endif %}>
+                                {{ color.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <select name="feature_size[]" class="form-select me-2" required>
+                            {% for size in sizes %}
+                            <option value="{{ size.id }}" {% if feature.size.id == size.id %}selected{% endif %}>
+                                {{ size.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="feature_stock[]" class="form-control me-2" value="{{ feature.stock }}" min="0" required>
+                        <button type="button" class="btn btn-danger btn-remove-feature">Eliminar</button>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+    </form>
+
+    </div>
+
+
+    <script>
+        var deletedFeatures = [];
+        $(document).ready(function () {
+            const featureContainer = $("#features-container"); // Contenedor de características        
+            const stockInput = $("#stock"); // Input del stock general
+
+            // Función para calcular el stock total de las características
+            function calculateTotalFeatureStock() {
+                let totalStock = 0;
+                $("input[name='feature_stock[]']").each(function () {
+                    totalStock += parseInt($(this).val()) || 0;
+                });
+                return totalStock;
+            }
+
+            // Función para actualizar el estado del stock
+            function validateStock() {
+                const generalStock = parseInt(stockInput.val()) || 0;
+                const totalFeatureStock = calculateTotalFeatureStock();
+          
+
+                // Validar que el stock total de las características no exceda el stock general
+                if (totalFeatureStock > generalStock) {
+                    alert("El stock total de las características no puede exceder el stock general.");
+                    return false; // Detener la ejecución si hay un error
+                }
+    
+                // Validar que el stock de cada característica no sea mayor que el stock general
+                let isValid = true;
+                $("input[name='feature_stock[]']").each(function () {
+                    const featureStock = parseInt($(this).val()) || 0;
+                    if (featureStock > generalStock) {
+                        alert("El stock de cada característica no puede ser mayor que el stock general.");
+                        isValid = false;
+                        return false; // Salir del loop
+                    }
+                });
+    
+                return isValid; // Retornar si todo es válido
+            }
+
+            // Función para actualizar el estado del Feature
+            function validateUniqueFeatures() {
+                const combinations = new Set();
+                let isUnique = true;
+    
+                $(".feature-row").each(function () {
+                    const color = $(this).find("select[name='feature_color[]']").val();
+                    const size = $(this).find("select[name='feature_size[]']").val();
+    
+                    if (color && size) {
+                        const combination = `${color}-${size}`;
+                        if (combinations.has( )) {
+                            alert(`No puede registrar la misma talla y color`);
+                            isUnique = false;
+                            return false; // Salir del loop
+                        }
+                        combinations.add(combination);
+                    }
+                });
+    
+                return isUnique;
+            }
+
+
+            // Actualizar la validación del stock cuando el stock general cambie
+            stockInput.on("input", function () {
+                validateStock();
+                validateUniqueFeatures();
+            });
+
+            // Agregar nueva fila
+            $("#add-feature").on("click", function () {
+                const row = $(`
+                    <div class="feature-row d-flex align-items-center mb-2" data-feature-id="new">
+                        <select name="feature_color[]" class="form-select me-2" required>
+                            <option value="">Color</option>
+                            {% for color in colors %}
+                            <option value="{{ color.id }}">{{ color.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select name="feature_size[]" class="form-select me-2" required>
+                            <option value="">Talla</option>
+                            {% for size in sizes %}
+                            <option value="{{ size.id }}">{{ size.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" name="feature_stock[]" class="form-control me-2" min="0" placeholder="Stock" required>
+                        <button type="button" class="btn btn-danger btn-remove-feature">Eliminar</button>
+                    </div>
+                `);
+                featureContainer.append(row);
+        
+                // Asignar evento para eliminar la fila recién agregada
+                row.find(".btn-remove-feature").on("click", function () {
+                    $(this).closest(".feature-row").remove();
+                    validateStock();
+                });
+                validateStock();
+
+            });
+            featureContainer.on("input", "input[name='feature_stock[]']", function () {
+                validateStock();
+                validateUniqueFeatures();
+            });
+
+            featureContainer.on("change", "select[name='feature_color[]'], select[name='feature_size[]']", function () {
+                console.log("otro");
+                validateUniqueFeatures();
+            });
+        
+            // Eliminar filas existentes al cargar la página
+            featureContainer.on("click", ".btn-remove-feature", function () {
+                const featureRow = $(this).closest(".feature-row");
+                const featureId = featureRow.data("feature-id");
+        
+                // Enviar el ID de la característica a eliminar al servidor
+                if (featureId && featureId !== "new") {
+                    // Marcar esta característica para eliminación
+                    deletedFeatures.push(featureId);
+                }
+        
+                featureRow.remove();
+            });
+            $('#product-form').submit(function(e) {
+
+                if (!validateStock() || !validateUniqueFeatures()) {
+                    e.preventDefault(); // Evitar el envío si no es válido
+                }else{
+                    e.preventDefault();
+                    $("#deleted-features").val(deletedFeatures.join(","));
+    
+                    var _this = $(this)
+                    $('.err-msg').remove();
+                    var el = $('<div>')
+                    el.addClass("alert alert-danger err-msg")
+                    el.hide()
+                    if (_this[0].checkValidity() == false) {
+                        _this[0].reportValidity();
+                        return false;
+                    }
+                    start_loader();
+                    $.ajax({
+                        headers: {
+                            "X-CSRFToken": '{{csrf_token}}'
+                        },
+                        url: "{% url 'save-product-page' %}",
+                        data: new FormData($(this)[0]),
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        method: 'POST',
+                        type: 'POST',
+                        dataType: 'json',
+                        error: err => {
+                            console.log(err)
+                            end_loader();
+                        },
+                        success: function(resp) {
+                            if (typeof resp == 'object' && resp.status == 'success') {
+                                el.removeClass("alert alert-danger err-msg")
+                                location.reload()
+                            } else if (resp.status == 'failed' && !!resp.msg) {
+                                el.text(resp.msg)
+                            } else {
+                                el.text("Ocurrio un error", 'error');
+                                end_loader();
+                                //console.err(resp)
+                            }
+                            _this.prepend(el)
+                            el.show('slow')
+                            $("html, body, .modal").scrollTop(0);
+                            end_loader()
+                        }
+                    })
+                }
+            })
+            
+        });
+        
+
+
+    </script>
+
+
+    
